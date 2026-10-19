@@ -67,3 +67,9 @@
 .sidebar .nav-link{border-radius:5px;font-weight:500}
 .sidebar .nav-link.active{border-radius:5px;box-shadow:none}
 @media(max-width:700px){.sidebar .nav-submenu{padding-left:28px!important}}
+
+.sidebar .nav-unavailable{opacity:.76;cursor:default;justify-content:flex-start}
+.sidebar .nav-unavailable small{margin-left:auto;font-size:9px;color:#8192ad;white-space:nowrap}
+.sidebar .nav-unavailable em{font-style:normal;color:#f05b6b}
+.sidebar .nav-group-toggle .nav-icon{font-family:'DM Sans',sans-serif;font-size:17px}
+.sidebar .nav-submenu .nav-sublink{white-space:nowrap}
