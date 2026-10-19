@@ -12,7 +12,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($pageTitle) ?> · Absensi SDN Ciburayut 01</title>
-<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019sidebarfix">
+<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019sidebarfix2">
 </head>
 <body>
 <div class="app-shell">
@@ -25,7 +25,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
 
     <div class="nav-group<?= navActive('/modules/guru/') ?>">
       <button class="nav-group-toggle<?= navActive('/modules/guru/') ?>" type="button" aria-expanded="<?= str_contains($uri, '/modules/guru/') ? 'true' : 'false' ?>" aria-controls="nav-gtk">
-        <span class="nav-icon">♧</span><span class="nav-label">GTK</span><span class="nav-chevron">›</span>
+        <span class="nav-icon">♧</span><span class="nav-label">GTK</span><span class="nav-chevron">⌄</span>
       </button>
       <div class="nav-submenu<?= str_contains($uri, '/modules/guru/') ? ' expanded' : '' ?>" id="nav-gtk">
         <a class="nav-sublink<?= navActive('/modules/guru/') ?>" href="<?= h($basePath) ?>/modules/guru/index.php"><span>♧</span>Data Guru</a>
