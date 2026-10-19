@@ -4,6 +4,17 @@ if (($_SESSION['role'] ?? '') !== 'admin') { http_response_code(403); exit('Hany
 $pageTitle = 'Kelola Akun';
 if (empty($_SESSION['csrf_akun'])) $_SESSION['csrf_akun'] = bin2hex(random_bytes(32));
 $errors = []; $notice = '';
+function akun_slug(string $nama): string {
+  $nama = trim($nama);
+  if (function_exists('iconv')) { $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nama); if ($ascii !== false) $nama = $ascii; }
+  $slug = strtolower($nama);
+  $slug = preg_replace('/[^a-z0-9]+/', '.', $slug) ?? '';
+  return trim($slug, '.') ?: 'pengguna';
+}
+function akun_column_exists(PDO $pdo, string $table, string $column): bool {
+  $q = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ? LIMIT 1');
+  $q->execute([$table, $column]); return (bool)$q->fetchColumn();
+}
 function akun_table_exists(PDO $pdo, string $table): bool {
   $q = $pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1'); $q->execute([$table]); return (bool)$q->fetchColumn();
 }
@@ -13,13 +24,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!hash_equals($_SESSION['csrf_akun'], (string)($_POST['csrf'] ?? ''))) $errors[] = 'Sesi keamanan tidak valid. Muat ulang halaman.';
   else {
     $action = (string)($_POST['action'] ?? '');
-    if ($action === 'create') {
+    if ($action === 'generate_missing') {
+      $created = 0; $skipped = 0; $reasons = [];
+      $teacherIdColumn = akun_column_exists($pdo, 'guru', 'nip') ? 'nip' : (akun_column_exists($pdo, 'guru', 'nik') ? 'nik' : '');
+      if ($teacherIdColumn !== '') {
+        $teachers = $pdo->query("SELECT id,nama,`$teacherIdColumn` AS identitas FROM guru WHERE status='aktif' ORDER BY id")->fetchAll();
+        foreach ($teachers as $person) {
+          $identitas = trim((string)($person['identitas'] ?? ''));
+          $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE guru_id=? LIMIT 1'); $check->execute([(int)$person['id']]);
+          if ($check->fetch()) { $skipped++; continue; }
+          if ($identitas === '') { $skipped++; $reasons[] = 'Guru tanpa NIP/NIK: ' . $person['nama']; continue; }
+          $base = akun_slug((string)$person['nama']) . '@cbr.guru.id'; $username = $base; $suffix = 2;
+          while (true) { $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? LIMIT 1'); $check->execute([$username]); if (!$check->fetch()) break; $username = akun_slug((string)$person['nama']) . $suffix++ . '@cbr.guru.id'; }
+          $ins = $pdo->prepare("INSERT INTO akun_pengguna (username,password_hash,nama,role,guru_id,siswa_id,aktif) VALUES (?,?,?,'guru',?,NULL,1)");
+          $ins->execute([$username,password_hash($identitas,PASSWORD_DEFAULT),(string)$person['nama'],(int)$person['id']]); $created++;
+        }
+      } else { $reasons[] = 'Kolom NIP/NIK tidak ditemukan di tabel guru.'; }
+      $students = $pdo->query("SELECT id,nama,nisn FROM siswa WHERE status='aktif' ORDER BY id")->fetchAll();
+      foreach ($students as $person) {
+        $identitas = trim((string)($person['nisn'] ?? ''));
+        $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE siswa_id=? LIMIT 1'); $check->execute([(int)$person['id']]);
+        if ($check->fetch()) { $skipped++; continue; }
+        if ($identitas === '') { $skipped++; $reasons[] = 'Siswa tanpa NISN: ' . $person['nama']; continue; }
+        $base = akun_slug((string)$person['nama']) . '@cbr.siswa.id'; $username = $base; $suffix = 2;
+        while (true) { $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? LIMIT 1'); $check->execute([$username]); if (!$check->fetch()) break; $username = akun_slug((string)$person['nama']) . $suffix++ . '@cbr.siswa.id'; }
+        $ins = $pdo->prepare("INSERT INTO akun_pengguna (username,password_hash,nama,role,guru_id,siswa_id,aktif) VALUES (?,?,?,'siswa',NULL,?,1)");
+        $ins->execute([$username,password_hash($identitas,PASSWORD_DEFAULT),(string)$person['nama'],(int)$person['id']]); $created++;
+      }
+      $notice = "Generate selesai: $created akun dibuat; $skipped data dilewati.";
+      if ($reasons) $notice .= ' Perlu diperiksa: ' . implode('; ', array_slice($reasons,0,8)) . (count($reasons)>8 ? ' dan lainnya.' : '');
+    } elseif ($action === 'create') {
       $username = trim((string)($_POST['username'] ?? ''));
       $nama = trim((string)($_POST['nama'] ?? ''));
       $role = (string)($_POST['role'] ?? '');
       $password = (string)($_POST['password'] ?? '');
       $guruId = null; $siswaId = null;
-      if (!preg_match('/^[A-Za-z0-9._-]{3,80}$/', $username)) $errors[] = 'Username 3–80 karakter; gunakan huruf, angka, titik, garis bawah, atau tanda hubung.';
+      if (!preg_match('/^[A-Za-z0-9._@-]{3,80}$/', $username)) $errors[] = 'Username 3–80 karakter; gunakan huruf, angka, titik, garis bawah, atau tanda hubung.';
       if ($nama === '' || mb_strlen($nama) > 150) $errors[] = 'Nama wajib diisi (maksimal 150 karakter).';
       if (!in_array($role, ['guru','siswa'], true)) $errors[] = 'Pilih jenis akun guru atau siswa.';
       if (strlen($password) < 10) $errors[] = 'Password minimal 10 karakter.';
@@ -62,7 +102,10 @@ require __DIR__ . '/../../includes/header.php';
 <?php if ($errors): ?><div class="account-alert error"><?php foreach ($errors as $e): ?><div><?= h($e) ?></div><?php endforeach; ?></div><?php endif; ?>
 <div class="account-grid">
 <section class="account-card">
-<h2>＋ Buat Akun Guru / Siswa</h2><p class="account-muted">Akun ditautkan ke data yang sudah ada; tidak membuat data guru atau siswa baru.</p>
+<h2>Generate Akun Otomatis</h2><p class="account-muted">Username dari nama: nama@cbr.guru.id atau nama@cbr.siswa.id. Password awal guru = NIP/NIK; siswa = NISN. Akun yang sudah ada tidak ditimpa.</p>
+<form method="post" onsubmit="return confirm('Generate akun untuk semua guru dan siswa aktif yang belum memiliki akun? Catat dan bagikan kredensial secara aman.')"><input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_akun']) ?>"><input type="hidden" name="action" value="generate_missing"><button class="account-btn" type="submit">⚡ Generate Akun Guru &amp; Siswa</button></form>
+<hr style="border:0;border-top:1px solid #edf0f5;margin:20px 0">
+<h2>Buat Akun Manual</h2><p class="account-muted">Untuk satu akun khusus; akun ditautkan ke data yang sudah ada.</p>
 <form method="post" autocomplete="off">
 <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_akun']) ?>"><input type="hidden" name="action" value="create">
 <div class="account-field"><label>Jenis akun</label><select name="role" id="akunRole" required><option value="guru">Guru</option><option value="siswa">Siswa</option></select></div>
