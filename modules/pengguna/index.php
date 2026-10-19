@@ -36,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE guru_id=? LIMIT 1'); $check->execute([(int)$person['id']]);
           if ($check->fetch()) { $skipped++; continue; }
           if ($identitas === '') { $skipped++; $reasons[] = 'Guru tanpa NIP/NIK: ' . $person['nama']; continue; }
-          $base = akun_slug((string)$person['nama']) . '@cbr.guru.id'; $username = $base; $suffix = 2;
-          while (true) { $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? LIMIT 1'); $check->execute([$username]); if (!$check->fetch()) break; $username = akun_slug((string)$person['nama']) . $suffix++ . '@cbr.guru.id'; }
+          $base = akun_slug((string)$person['nama']) . '.cbr.guru.id'; $username = $base; $suffix = 2;
+          while (true) { $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? LIMIT 1'); $check->execute([$username]); if (!$check->fetch()) break; $username = akun_slug((string)$person['nama']) . $suffix++ . '.cbr.guru.id'; }
           $ins = $pdo->prepare("INSERT INTO akun_pengguna (username,password_hash,nama,role,guru_id,siswa_id,aktif) VALUES (?,?,?,'guru',?,NULL,1)");
           $ins->execute([$username,password_hash($identitas,PASSWORD_DEFAULT),(string)$person['nama'],(int)$person['id']]); $created++;
         }
@@ -48,8 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE siswa_id=? LIMIT 1'); $check->execute([(int)$person['id']]);
         if ($check->fetch()) { $skipped++; continue; }
         if ($identitas === '') { $skipped++; $reasons[] = 'Siswa tanpa NISN: ' . $person['nama']; continue; }
-        $base = akun_slug((string)$person['nama']) . '@cbr.siswa.id'; $username = $base; $suffix = 2;
-        while (true) { $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? LIMIT 1'); $check->execute([$username]); if (!$check->fetch()) break; $username = akun_slug((string)$person['nama']) . $suffix++ . '@cbr.siswa.id'; }
+        $base = akun_slug((string)$person['nama']) . '.cbr.siswa.id'; $username = $base; $suffix = 2;
+        while (true) { $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? LIMIT 1'); $check->execute([$username]); if (!$check->fetch()) break; $username = akun_slug((string)$person['nama']) . $suffix++ . '.cbr.siswa.id'; }
         $ins = $pdo->prepare("INSERT INTO akun_pengguna (username,password_hash,nama,role,guru_id,siswa_id,aktif) VALUES (?,?,?,'siswa',NULL,?,1)");
         $ins->execute([$username,password_hash($identitas,PASSWORD_DEFAULT),(string)$person['nama'],(int)$person['id']]); $created++;
       }
