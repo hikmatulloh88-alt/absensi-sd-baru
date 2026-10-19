@@ -48,3 +48,22 @@
 .sidebar .nav-submenu .nav-sublink>span{font-size:15px;color:#8298b8}
 .sidebar .nav-submenu .nav-sublink:hover{background:#ffffff0c!important;color:#fff!important}
 .sidebar .nav-submenu .nav-sublink.active{background:#ffffff10!important;color:#fff!important;box-shadow:inset 3px 0 #19b6c9!important}
+
+/* Dapodik-inspired flat dropdown: remove oversized pill/button feel */
+.sidebar .nav-list{display:flex;flex-direction:column;gap:2px}
+.sidebar .nav-group{margin:0;padding:0}
+.sidebar .nav-group-toggle{min-height:42px!important;padding:10px 13px!important;border-radius:5px!important;background:transparent!important;box-shadow:none!important;color:#aab9d1!important;font-size:14px!important;font-weight:500!important}
+.sidebar .nav-group-toggle .nav-icon{width:22px;height:20px;font-size:17px;color:#9fb1ca}
+.sidebar .nav-group-toggle .nav-label{font-weight:500}
+.sidebar .nav-group-toggle .nav-chevron{font-family:Arial,sans-serif;font-size:17px;font-weight:400;color:#91a5c1;transform:none!important}
+.sidebar .nav-group-toggle[aria-expanded="true"] .nav-chevron{transform:rotate(90deg)!important}
+.sidebar .nav-group-toggle.active{background:#ffffff0c!important;color:#dce8fb!important}
+.sidebar .nav-group-toggle:hover{background:#ffffff0b!important;color:#fff!important}
+.sidebar .nav-submenu{padding:0 0 4px 30px!important;gap:0!important}
+.sidebar .nav-submenu .nav-sublink{min-height:36px!important;padding:8px 12px!important;border-radius:0 4px 4px 0!important;background:transparent!important;box-shadow:none!important;color:#aab9d1!important;font-size:13px!important;font-weight:400!important;gap:9px!important}
+.sidebar .nav-submenu .nav-sublink>span{width:15px;font-size:13px;color:#8fa4c1}
+.sidebar .nav-submenu .nav-sublink:hover{background:#ffffff0a!important;color:#fff!important}
+.sidebar .nav-submenu .nav-sublink.active{background:transparent!important;color:#dce8fb!important;box-shadow:inset 2px 0 #19b6c9!important}
+.sidebar .nav-link{border-radius:5px;font-weight:500}
+.sidebar .nav-link.active{border-radius:5px;box-shadow:none}
+@media(max-width:700px){.sidebar .nav-submenu{padding-left:28px!important}}
