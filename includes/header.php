@@ -21,7 +21,15 @@ function navActive(string $needle): string { global $uri; return str_contains($u
   <div class="nav-caption">MENU UTAMA</div>
   <nav class="nav-list">
     <a class="nav-link<?= (str_ends_with($uri, '/index.php') && !str_contains($uri, '/modules/')) ? ' active' : '' ?>" href="<?= h($basePath) ?>/index.php"><span>▦</span>Dashboard</a>
-    <a class="nav-link<?= navActive('/modules/absensi/') ?>" href="<?= h($basePath) ?>/modules/absensi/index.php"><span>◉</span>Absensi</a>
+    <div class="nav-group<?= navActive('/modules/absensi/') ?>">
+      <button class="nav-group-toggle<?= navActive('/modules/absensi/') ?>" type="button" aria-expanded="<?= str_contains($uri, '/modules/absensi/') ? 'true' : 'false' ?>" aria-controls="nav-absensi">
+        <span class="nav-icon">◉</span><span class="nav-label">Absensi</span><span class="nav-chevron">⌄</span>
+      </button>
+      <div class="nav-submenu<?= str_contains($uri, '/modules/absensi/') ? ' expanded' : '' ?>" id="nav-absensi">
+        <a class="nav-sublink<?= str_contains($uri, '/modules/absensi/') && (($_GET['jenis'] ?? 'siswa') !== 'guru') ? ' active' : '' ?>" href="<?= h($basePath) ?>/modules/absensi/index.php?jenis=siswa"><span>☻</span>Absensi Siswa</a>
+        <a class="nav-sublink<?= str_contains($uri, '/modules/absensi/') && (($_GET['jenis'] ?? '') === 'guru') ? ' active' : '' ?>" href="<?= h($basePath) ?>/modules/absensi/index.php?jenis=guru"><span>🎓</span>Absensi Guru</a>
+      </div>
+    </div>
 
     <div class="nav-group<?= navActive('/modules/guru/') ?>" >
       <button class="nav-group-toggle<?= navActive('/modules/guru/') ?>" type="button" aria-expanded="<?= str_contains($uri, '/modules/guru/') ? 'true' : 'false' ?>" aria-controls="nav-gtk">
