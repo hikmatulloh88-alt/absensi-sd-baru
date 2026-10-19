@@ -151,7 +151,7 @@ $totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE 
 <div class="student-stat pink"><div class="stat-icon">♀</div><div class="label">Perempuan</div><div class="value"><?= number_format((int)($statGender['perempuan']??0),0,',','.') ?></div><div class="hint">Berdasarkan data jenis kelamin</div></div>
 <div class="student-stat amber"><div class="stat-icon">🏫</div><div class="label">Rombel Aktif</div><div class="value"><?= number_format($totalRombel,0,',','.') ?></div><div class="hint">Rombongan belajar terdata</div></div>
 </section>
-<div><span class="eyebrow">MASTER DATA</span><h2>Data Siswa</h2><p>Kelola identitas siswa dan rombongan belajar.</p></div><div class="date-chip"><?= count($siswas) ?> data siswa</div></section>
+<div class="student-list-count"><?= count($siswas) ?> data siswa ditampilkan</div>
 <?php if(isset($_GET['saved'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil disimpan.</div><?php endif; ?>
 <?php if(isset($_GET['deleted'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil dihapus.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
