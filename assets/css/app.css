@@ -33,3 +33,18 @@
 .sidebar .nav-submenu .nav-sublink:hover{background:#ffffff0c;color:#fff}
 .sidebar .nav-submenu .nav-sublink.active{background:#ffffff12;color:#fff;box-shadow:inset 3px 0 #25c1c8}
 @media(max-width:700px){.sidebar .nav-submenu{padding-left:31px}}
+
+/* Final Dapodik-inspired dropdown layout */
+.sidebar .nav-list{display:flex;flex-direction:column;gap:5px;align-items:stretch}
+.sidebar .nav-list>.nav-link,.sidebar .nav-list>.nav-group{flex:0 0 auto}
+.sidebar .nav-group-toggle{position:relative;min-height:46px;padding:12px 13px!important;border-radius:10px!important;background:transparent!important;color:#aab9d1!important}
+.sidebar .nav-group-toggle .nav-icon{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;font-size:18px;color:inherit}
+.sidebar .nav-group-toggle .nav-chevron{font-size:18px;font-weight:700;line-height:1;color:#8fa4c4;transform:rotate(0);transition:transform .18s}
+.sidebar .nav-group-toggle[aria-expanded="true"] .nav-chevron{transform:rotate(180deg)}
+.sidebar .nav-group-toggle:hover{background:#ffffff0c!important;color:#fff!important}
+.sidebar .nav-group-toggle.active{background:linear-gradient(90deg,#345de0,#2a4fb9)!important;color:#fff!important;box-shadow:0 7px 17px #0b173b44}
+.sidebar .nav-submenu{padding:4px 0 5px 31px!important;gap:2px!important}
+.sidebar .nav-submenu .nav-sublink{min-height:39px;padding:9px 11px!important;border-radius:8px!important;color:#aab9d1!important;background:transparent!important;box-shadow:none!important}
+.sidebar .nav-submenu .nav-sublink>span{font-size:15px;color:#8298b8}
+.sidebar .nav-submenu .nav-sublink:hover{background:#ffffff0c!important;color:#fff!important}
+.sidebar .nav-submenu .nav-sublink.active{background:#ffffff10!important;color:#fff!important;box-shadow:inset 3px 0 #19b6c9!important}
