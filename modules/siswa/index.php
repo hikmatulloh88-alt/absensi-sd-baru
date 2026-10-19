@@ -217,6 +217,22 @@ $totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE 
 .student-page table tbody td{font-size:13px}
 .student-page table thead th{background:#f5f8fc;white-space:nowrap}
 .student-page .action-primary{background:#1677f2!important;border-radius:9px!important}
+.student-upload-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 20px}
+.student-upload-card{position:relative;display:flex;flex-direction:column;gap:15px;min-width:0;padding:20px;border:1px solid #e5ebf4;border-radius:15px;background:#fff;box-shadow:0 5px 18px #243b5308;overflow:hidden}
+.student-upload-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:#1677f2}
+.photo-upload-card{background:linear-gradient(135deg,#f2f8ff 0%,#fff 70%);border-color:#d9e9ff}.photo-upload-card:before{background:linear-gradient(90deg,#1677f2,#55a2ff)}
+.data-upload-card{background:linear-gradient(135deg,#effcf5 0%,#fff 70%);border-color:#d5f2e2}.data-upload-card:before{background:linear-gradient(90deg,#11966d,#48c99a)}
+.student-upload-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;font-size:22px}
+.photo-upload-icon{background:#dcecff}.data-upload-icon{background:#d9f8e5}
+.student-upload-copy{min-width:0}.student-upload-kicker{font-size:10px;font-weight:800;letter-spacing:1.25px;color:#6e8099}
+.student-upload-copy h3{margin:6px 0 7px;font-size:17px;letter-spacing:-.25px;color:#172a45}
+.student-upload-copy p{margin:0;color:#718198;font-size:12px;line-height:1.55}
+.student-upload-form{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto}
+.student-upload-form input[type=file]{min-width:0;flex:1 1 180px;width:100%;font-size:12px;color:#61728a}
+.student-upload-form button{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:9px;padding:11px 15px;background:#1677f2;color:white;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
+.data-upload-card .student-upload-form button{background:#108764}
+.student-upload-form button:hover{filter:brightness(.96)}
+@media(max-width:850px){.student-upload-grid{grid-template-columns:1fr}}
 .student-page .student-filter-form{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;margin:0}
 .student-page .student-filter-form input{width:190px;min-width:130px;padding:10px 11px;border:1px solid #dce3ed;border-radius:8px;background:#fff}
 .student-page .student-filter-form select{width:128px;min-width:115px;padding:10px 9px;border:1px solid #dce3ed;border-radius:8px;background:#fff}
@@ -240,11 +256,18 @@ $totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE 
 <?php if(isset($_GET['deleted'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil dihapus.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
 <?php if ($importResult): ?><div class="notice" style="background:#e8f8f1;color:#13845e"><?= h($importResult) ?></div><?php endif; ?>
-<section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Upload Foto Siswa Massal</h3><p>Pilih banyak foto sekaligus. Nama file harus sama dengan ID siswa, NIS, atau NISN, contoh 1001.jpg atau 0123456789.png. Maksimal 500 foto, 3 MB per foto.</p></div></div>
-<form method="post" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="hidden" name="action" value="upload_photos_bulk"><input type="file" name="photos[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple required><button type="submit" onclick="return confirm('Upload foto siswa yang dipilih?')" style="padding:11px 16px;background:#1677f2;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer">Upload Foto Massal</button></form></section>
-<section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Upload Data Siswa Massal</h3><p>Gunakan file ekspor Peserta Didik asli dari Dapodik (.xlsx/CSV), tanpa mengubah susunan kolom. Format 46/66 kolom didukung jika header identitas dikenali; maksimal 5 MB.</p></div></div>
-<p style="margin:0 0 12px"><span style="color:#536179">Gunakan file ekspor Peserta Didik asli dari Dapodik; tidak perlu template khusus.</span></p>
-<form method="post" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="hidden" name="action" value="import_csv"><input type="file" name="csv_file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><button type="submit" onclick="return confirm('Proses upload data siswa dari CSV?')" style="padding:11px 16px;background:#0f8b68;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer">Upload Data Massal</button></form></section>
+<section class="student-upload-grid">
+<div class="student-upload-card photo-upload-card">
+  <div class="student-upload-icon photo-upload-icon">📷</div>
+  <div class="student-upload-copy"><span class="student-upload-kicker">FOTO PESERTA DIDIK</span><h3>Upload Foto Siswa Massal</h3><p>Pilih banyak foto sekaligus. Nama file harus sama dengan ID siswa, NIS, atau NISN. Maksimal 500 foto, 3 MB per foto.</p></div>
+  <form method="post" enctype="multipart/form-data" class="student-upload-form"><input type="hidden" name="action" value="upload_photos_bulk"><input type="file" name="photos[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple required><button type="submit" onclick="return confirm('Upload foto siswa yang dipilih?')">Upload Foto Massal <span>→</span></button></form>
+</div>
+<div class="student-upload-card data-upload-card">
+  <div class="student-upload-icon data-upload-icon">📋</div>
+  <div class="student-upload-copy"><span class="student-upload-kicker">IMPOR DATA</span><h3>Upload Data Siswa Massal</h3><p>Gunakan file ekspor Peserta Didik asli dari Dapodik (.xlsx/CSV), tanpa mengubah susunan kolom. Format 46/66 kolom didukung; maksimal 5 MB.</p></div>
+  <form method="post" enctype="multipart/form-data" class="student-upload-form"><input type="hidden" name="action" value="import_csv"><input type="file" name="csv_file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><button type="submit" onclick="return confirm('Proses upload data siswa dari CSV?')">Upload Data Massal <span>→</span></button></form>
+</div>
+</section>
 <section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3><?= $edit?'Edit Siswa':'Tambah Siswa' ?></h3><p>Nama wajib diisi. NIS, NISN, rombel, dan jenis kelamin dapat dilengkapi.</p></div></div>
 <form method="post" action="index.php" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
 <input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int)($edit['id']??0) ?>">
