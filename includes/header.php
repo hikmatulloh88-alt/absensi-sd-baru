@@ -74,6 +74,9 @@ function navActive(string $needle): string { global $uri; return str_contains($u
     </div>
 
     <a class="nav-link<?= navActive('/modules/laporan/') ?>" href="<?= h($basePath) ?>/modules/laporan/index.php"><span>▤</span>Laporan</a>
+    <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+    <a class="nav-link<?= navActive('/modules/pengguna/') ?>" href="<?= h($basePath) ?>/modules/pengguna/index.php"><span>⚙</span>Kelola Akun</a>
+    <?php endif; ?>
   </nav>
   <div class="sidebar-bottom"><div class="school-avatar">SD</div><div><strong>SDN Ciburayut 01</strong><small>Mode pengembangan lokal</small></div></div>
 </aside>
