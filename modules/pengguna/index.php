@@ -26,9 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     if ($action === 'generate_missing') {
       $created = 0; $skipped = 0; $reasons = [];
-      $teacherIdColumn = akun_column_exists($pdo, 'guru', 'nip') ? 'nip' : (akun_column_exists($pdo, 'guru', 'nik') ? 'nik' : '');
-      if ($teacherIdColumn !== '') {
-        $teachers = $pdo->query("SELECT id,nama,`$teacherIdColumn` AS identitas FROM guru WHERE status='aktif' ORDER BY id")->fetchAll();
+      $hasNip = akun_column_exists($pdo, 'guru', 'nip');
+      $hasNik = akun_column_exists($pdo, 'guru', 'nik');
+      $identityExpr = $hasNip && $hasNik ? "COALESCE(NULLIF(nip,''),NULLIF(nik,''),'')" : ($hasNip ? "COALESCE(nip,'')" : ($hasNik ? "COALESCE(nik,'')" : "''"));
+      if ($hasNip || $hasNik) {
+        $teachers = $pdo->query("SELECT id,nama,$identityExpr AS identitas FROM guru WHERE status='aktif' ORDER BY id")->fetchAll();
         foreach ($teachers as $person) {
           $identitas = trim((string)($person['identitas'] ?? ''));
           $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE guru_id=? LIMIT 1'); $check->execute([(int)$person['id']]);
