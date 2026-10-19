@@ -5,7 +5,7 @@ $pageTitle = 'Kelola Akun';
 if (empty($_SESSION['csrf_akun'])) $_SESSION['csrf_akun'] = bin2hex(random_bytes(32));
 $errors = []; $notice = '';
 function akun_table_exists(PDO $pdo, string $table): bool {
-  $q = $pdo->prepare('SHOW TABLES LIKE ?'); $q->execute([$table]); return (bool)$q->fetchColumn();
+  $q = $pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1'); $q->execute([$table]); return (bool)$q->fetchColumn();
 }
 $guruList = akun_table_exists($pdo, 'guru') ? $pdo->query("SELECT id,nama FROM guru WHERE status='aktif' ORDER BY nama")->fetchAll() : [];
 $siswaList = akun_table_exists($pdo, 'siswa') ? $pdo->query("SELECT id,nama,nisn,nis,rombel FROM siswa WHERE status='aktif' ORDER BY nama")->fetchAll() : [];
