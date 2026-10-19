@@ -33,6 +33,25 @@ CREATE TABLE IF NOT EXISTS rombel (
   INDEX idx_rombel_jenis_tingkat (jenis, tingkat)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS matpel_pilihan (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nama VARCHAR(100) NOT NULL UNIQUE,
+  tingkat TINYINT UNSIGNED NULL,
+  keterangan VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS siswa_matpel_pilihan (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  siswa_id INT UNSIGNED NOT NULL,
+  matpel_id INT UNSIGNED NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_siswa_matpel_pilihan (siswa_id,matpel_id),
+  INDEX idx_siswa_matpel (matpel_id),
+  CONSTRAINT fk_smp_siswa FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
+  CONSTRAINT fk_smp_matpel FOREIGN KEY (matpel_id) REFERENCES matpel_pilihan(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS absensi (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   jenis ENUM('guru','siswa') NOT NULL,
