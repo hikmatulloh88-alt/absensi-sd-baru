@@ -78,5 +78,5 @@ function navActive(string $needle): string { global $uri; return str_contains($u
   <div class="sidebar-bottom"><div class="school-avatar">SD</div><div><strong>SDN Ciburayut 01</strong><small>Mode pengembangan lokal</small></div></div>
 </aside>
 <div class="main-area">
-<header class="topbar"><button class="menu-toggle" id="menuToggle" aria-label="Buka menu">☰</button><div class="crumb">Sekolah <span>/</span> <strong><?= h($pageTitle) ?></strong></div><div class="top-actions"><span class="local-badge"><i></i> LOCAL DEV</span><div class="user-avatar">A</div><div class="user-meta"><strong>Administrator</strong><small>Pengembang lokal</small></div></div></header>
+<header class="topbar"><button class="menu-toggle" id="menuToggle" aria-label="Buka menu">☰</button><div class="crumb">Sekolah <span>/</span> <strong><?= h($pageTitle) ?></strong></div><div class="top-actions"><span class="local-badge"><i></i> LOCAL DEV</span><div class="user-avatar"><?= h(mb_substr((string)($_SESSION['nama'] ?? 'A'),0,1)) ?></div><div class="user-meta"><strong><?= h($_SESSION['nama'] ?? 'Pengguna') ?></strong><small><?= h(strtoupper((string)($_SESSION['role'] ?? ''))) ?></small></div><a href="<?= h($basePath) ?>/logout.php" style="margin-left:12px;color:#b42318;font-size:12px;font-weight:800;text-decoration:none">Keluar</a></div></header>
 <main class="page-content">
