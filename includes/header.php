@@ -28,6 +28,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
       <div class="nav-submenu<?= str_contains($uri, '/modules/absensi/') ? ' expanded' : '' ?>" id="nav-absensi">
         <a class="nav-sublink<?= str_contains($uri, '/modules/absensi/') && (($_GET['jenis'] ?? 'siswa') !== 'guru') ? ' active' : '' ?>" href="<?= h($basePath) ?>/modules/absensi/index.php?jenis=siswa"><span>☻</span>Absensi Siswa</a>
         <a class="nav-sublink<?= str_contains($uri, '/modules/absensi/') && (($_GET['jenis'] ?? '') === 'guru') ? ' active' : '' ?>" href="<?= h($basePath) ?>/modules/absensi/index.php?jenis=guru"><span>🎓</span>Absensi Guru</a>
+        <a class="nav-sublink<?= navActive('/modules/kartu/') ?>" href="<?= h($basePath) ?>/modules/kartu/index.php"><span>▣</span>Cetak Kartu QR</a>
       </div>
     </div>
 
