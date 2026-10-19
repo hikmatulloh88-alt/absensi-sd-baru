@@ -57,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
             if ($pdo->inTransaction()) $pdo->rollBack();
             $errors[] = 'Impor gagal: '. $e->getMessage();
         }
+    }
+}
 
 
 if (!$pdo) {
