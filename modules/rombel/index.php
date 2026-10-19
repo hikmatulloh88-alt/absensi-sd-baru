@@ -90,7 +90,7 @@ if (isset($_GET['saved'])) $success = 'Rombongan belajar berhasil ditambahkan.';
 if (isset($_GET['assigned'])) $success = 'Siswa berhasil dimasukkan ke rombel.';
 if (isset($_GET['removed'])) $success = 'Siswa dikeluarkan dari rombel.';
 if (isset($_GET['deleted'])) $success = 'Rombel berhasil dihapus.';
-$rombels = $pdo->query("SELECT r.id,r.nama,r.tingkat,COUNT(s.id) AS jumlah FROM rombel r LEFT JOIN siswa s ON s.rombel=r.nama AND s.status='aktif' WHERE r.jenis='reguler' GROUP BY r.id,r.nama,r.tingkat ORDER BY r.tingkat,r.nama")->fetchAll();
+$rombels = $pdo->query("SELECT r.id,r.nama,r.tingkat,COUNT(s.id) AS jumlah FROM rombel r LEFT JOIN siswa s ON CONVERT(s.rombel USING utf8mb4) COLLATE utf8mb4_unicode_ci = r.nama COLLATE utf8mb4_unicode_ci AND s.status='aktif' WHERE r.jenis='reguler' GROUP BY r.id,r.nama,r.tingkat ORDER BY r.tingkat,r.nama")->fetchAll();
 $selectedId = (int)($_GET['rombel'] ?? ($rombels[0]['id'] ?? 0));
 $selected = null;
 foreach ($rombels as $r) if ((int)$r['id'] === $selectedId) $selected = $r;
