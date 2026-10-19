@@ -19,7 +19,7 @@ if($jenis==='siswa' && !empty($p['id'])) {
     if(is_file($candidate)) { $photoUrl='../../assets/images/siswa/'.(int)$p['id'].'.'.$ext; break; }
   }
 }
-?><article class="qr-card"><div class="card-bg"></div><div class="person-photo"><?php if($photoUrl!==''):?><img src="<?=h($photoUrl)?>" alt="Foto <?=h($p['nama'])?>"><?php else:?><span>FOTO</span><?php endif;?></div><h3><?=h($p['nama'])?></h3><p class="person-code"><?= $jenis==='guru'?'NIP':((trim((string)($p['nisn']??''))!=='')?'NISN':'NIS') ?>: <?=h($p['kode'])?></p><?php if($jenis==='siswa'):?><p class="person-class">Kelas: <?=h($p['rombel']?:'-')?></p><?php endif;?><div class="qr-code" data-code="<?=h($p['kode'])?>"></div><footer>SCAN UNTUK ABSENSI</footer></article><?php endforeach;?></div><?php endif;?>
+?><article class="qr-card"><div class="card-bg"></div><div class="person-photo"><?php if($photoUrl!==''):?><img src="<?=h($photoUrl)?>" alt="Foto <?=h($p['nama'])?>"><?php else:?><span>FOTO</span><?php endif;?></div><h3><?=h($p['nama'])?></h3><p class="person-code"><?= $jenis==='guru'?'NIP':((trim((string)($p['nisn']??''))!=='')?'NISN':'NIS') ?>: <?=h($p['kode'])?></p><div class="qr-code" data-code="<?=h($p['kode'])?>"></div><footer>SCAN UNTUK ABSENSI</footer></article><?php endforeach;?></div><?php endif;?>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script>document.querySelectorAll('.qr-code').forEach(e=>{if(window.QRCode)new QRCode(e,{text:e.dataset.code,width:112,height:112,correctLevel:QRCode.CorrectLevel.M});else e.textContent='QR tidak termuat';});</script>
 <style>
 .qr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start}
@@ -27,12 +27,12 @@ if($jenis==='siswa' && !empty($p['id'])) {
 .person-photo{position:relative;z-index:1;width:104px;height:104px;border:4px solid #fff;outline:2px solid #1d5fb8;border-radius:50%;overflow:hidden;background:#e9f0f8;display:grid;place-items:center;box-shadow:0 4px 12px #163e6a20;margin:5px auto 12px;color:#6b7f99;font-size:11px;font-weight:800}
 .person-photo img{width:100%;height:100%;object-fit:cover}
 .qr-card h3{position:relative;z-index:1;font-size:13px;line-height:1.25;margin:0 0 5px;max-width:100%;overflow-wrap:anywhere;text-transform:uppercase;color:#132b50}
-.person-code{position:relative;z-index:1;font-size:10px;font-weight:700;margin:0 0 2px;color:#294b78;overflow-wrap:anywhere}.person-class{position:relative;z-index:1;font-size:9px;font-weight:600;margin:0 0 5px;color:#294b78}
+.person-code{position:relative;z-index:1;font-size:10px;font-weight:700;margin:0 0 2px;color:#294b78;overflow-wrap:anywhere}
 .qr-code{position:relative;z-index:1;display:flex;justify-content:center;align-items:center;margin:auto auto 5px;background:#fff;border:4px solid white;box-shadow:0 0 0 1px #d7e1ee;border-radius:5px;padding:3px}
 .qr-code canvas,.qr-code img{display:block;max-width:100%}
 .qr-card footer{position:relative;z-index:1;width:100%;border-top:1px solid #a8bfdc;padding-top:8px;font-size:8px;font-weight:900;letter-spacing:1.1px;color:#1b4f91}
 @media(max-width:850px){.qr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.qr-grid{grid-template-columns:1fr}.qr-card{max-width:310px;width:100%;margin:auto}}
-@media print{@page{size:A4 portrait;margin:7mm}.sidebar,.topbar,.no-print,.footer{display:none!important}.main-area{margin:0!important;width:100%!important}.page-content{padding:0!important}.qr-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5mm}.qr-card{min-height:0;height:78mm;aspect-ratio:auto;border:0;border-radius:0;padding:5mm 3mm 3mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.person-photo{width:27mm;height:27mm}.qr-card h3{font-size:8pt}.person-code{font-size:6.5pt}.person-class{font-size:6pt}.qr-code{margin-bottom:2mm}.qr-code canvas,.qr-code img{width:25mm!important;height:25mm!important}.qr-card footer{font-size:5.5pt}}
+@media print{@page{size:A4 portrait;margin:7mm}.sidebar,.topbar,.no-print,.footer{display:none!important}.main-area{margin:0!important;width:100%!important}.page-content{padding:0!important}.qr-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5mm}.qr-card{min-height:0;height:78mm;aspect-ratio:auto;border:0;border-radius:0;padding:5mm 3mm 3mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.person-photo{width:27mm;height:27mm}.qr-card h3{font-size:8pt}.person-code{font-size:6.5pt}.qr-code{margin-bottom:2mm}.qr-code canvas,.qr-code img{width:25mm!important;height:25mm!important}.qr-card footer{font-size:5.5pt}}
 </style>
 <?php require __DIR__.'/../../includes/footer.php'; ?>
