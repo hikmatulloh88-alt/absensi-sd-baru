@@ -112,8 +112,46 @@ $sql .= ' ORDER BY rombel,nama';
 $stmt=$pdo->prepare($sql); $stmt->execute($params); $siswas=$stmt->fetchAll();
 $rombels=$pdo->query("SELECT DISTINCT rombel FROM siswa WHERE rombel IS NOT NULL AND rombel<>'' ORDER BY rombel")->fetchAll(PDO::FETCH_COLUMN);
 require __DIR__ . '/../../includes/header.php';
+$totalSiswa = (int)$pdo->query("SELECT COUNT(*) FROM siswa")->fetchColumn();
+$statGender = $pdo->query("SELECT SUM(jenis_kelamin='L') AS laki, SUM(jenis_kelamin='P') AS perempuan FROM siswa")->fetch() ?: [];
+$totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE rombel IS NOT NULL AND rombel<>''")->fetchColumn();
 ?>
-<section class="welcome"><div><span class="eyebrow">MASTER DATA</span><h2>Data Siswa</h2><p>Kelola identitas siswa dan rombongan belajar.</p></div><div class="date-chip"><?= count($siswas) ?> data siswa</div></section>
+<style>
+.student-page{--sp-blue:#1677f2;--sp-ink:#132238;--sp-muted:#728198;color:var(--sp-ink)}
+.student-page .welcome{align-items:center;margin-bottom:22px}
+.student-page .welcome h2{font-size:30px;letter-spacing:-.7px;margin:3px 0 6px}
+.student-page .eyebrow{font-size:11px;font-weight:800;letter-spacing:1.5px;color:#1677f2}
+.student-page .welcome p{color:var(--sp-muted)}
+.student-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 20px}
+.student-stat{padding:20px;border:1px solid #e6edf5;border-radius:14px;background:#fff;box-shadow:0 5px 18px #243b5308;min-width:0}
+.student-stat .label{font-size:13px;color:#66778e;font-weight:600}
+.student-stat .value{font-size:29px;font-weight:800;letter-spacing:-.8px;margin:7px 0 4px}
+.student-stat .hint{font-size:12px;color:#7b8ba1}
+.student-stat .stat-icon{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;font-size:21px;margin-bottom:12px}
+.student-stat.blue{background:linear-gradient(135deg,#f1f7ff,#fff);border-color:#d8e9ff}.student-stat.blue .stat-icon{background:#dcecff;color:#1677f2}
+.student-stat.green{background:linear-gradient(135deg,#effcf5,#fff);border-color:#d7f4e3}.student-stat.green .stat-icon{background:#d9f8e5;color:#159455}
+.student-stat.pink{background:linear-gradient(135deg,#fff3f6,#fff);border-color:#ffe0e8}.student-stat.pink .stat-icon{background:#ffe0e8;color:#d6336c}
+.student-stat.amber{background:linear-gradient(135deg,#fff9e9,#fff);border-color:#ffedc2}.student-stat.amber .stat-icon{background:#ffefc2;color:#b77908}
+.student-page .panel{border:1px solid #e7edf5;border-radius:14px;box-shadow:0 5px 18px #243b5308;padding:20px;background:#fff}
+.student-page .panel-heading{gap:14px;align-items:center}
+.student-page .panel-heading h3{font-size:17px;letter-spacing:-.2px}
+.student-page input,.student-page select{max-width:100%;box-sizing:border-box}
+.student-page table tbody tr:hover{background:#f7faff}
+.student-page table tbody td{font-size:13px}
+.student-page table thead th{background:#f5f8fc;white-space:nowrap}
+.student-page .action-primary{background:#1677f2!important;border-radius:9px!important}
+@media(max-width:900px){.student-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.student-stats{grid-template-columns:1fr 1fr;gap:8px}.student-stat{padding:13px}.student-stat .value{font-size:23px}.student-page .panel{padding:13px}.student-page .welcome h2{font-size:25px}}
+</style>
+<div class="student-page">
+<section class="welcome"><div><span class="eyebrow">MASTER DATA</span><h2>Data Siswa</h2><p>Kelola data peserta didik, impor Dapodik, dan pantau rombongan belajar.</p></div><div class="date-chip">Tahun Ajaran 2026/2027</div></section>
+<section class="student-stats">
+<div class="student-stat blue"><div class="stat-icon">👥</div><div class="label">Total Siswa</div><div class="value"><?= number_format($totalSiswa,0,',','.') ?></div><div class="hint">Semua data peserta didik</div></div>
+<div class="student-stat green"><div class="stat-icon">♂</div><div class="label">Laki-laki</div><div class="value"><?= number_format((int)($statGender['laki']??0),0,',','.') ?></div><div class="hint">Berdasarkan data jenis kelamin</div></div>
+<div class="student-stat pink"><div class="stat-icon">♀</div><div class="label">Perempuan</div><div class="value"><?= number_format((int)($statGender['perempuan']??0),0,',','.') ?></div><div class="hint">Berdasarkan data jenis kelamin</div></div>
+<div class="student-stat amber"><div class="stat-icon">🏫</div><div class="label">Rombel Aktif</div><div class="value"><?= number_format($totalRombel,0,',','.') ?></div><div class="hint">Rombongan belajar terdata</div></div>
+</section>
+<div><span class="eyebrow">MASTER DATA</span><h2>Data Siswa</h2><p>Kelola identitas siswa dan rombongan belajar.</p></div><div class="date-chip"><?= count($siswas) ?> data siswa</div></section>
 <?php if(isset($_GET['saved'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil disimpan.</div><?php endif; ?>
 <?php if(isset($_GET['deleted'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil dihapus.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
@@ -138,4 +176,5 @@ require __DIR__ . '/../../includes/header.php';
 <?php if(!$siswas): ?><tr><td colspan="7" style="padding:20px;color:#8290a5;text-align:center">Belum ada data siswa.</td></tr><?php endif; ?>
 <?php foreach($siswas as $s): ?><tr><?php foreach(['nisn','nis','nama','rombel','jenis_kelamin','status'] as $col): ?><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h($s[$col]??'-') ?></td><?php endforeach; ?><td style="padding:12px;border-bottom:1px solid #edf1f6;white-space:nowrap"><a href="index.php?edit=<?= (int)$s['id'] ?>" style="color:#4263eb;font-weight:700">Edit</a><form method="post" style="display:inline" onsubmit="return confirm('Hapus data siswa ini?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int)$s['id'] ?>"><button style="margin-left:8px;border:0;background:none;color:#d34b4b;cursor:pointer">Hapus</button></form></td></tr><?php endforeach; ?>
 </tbody></table></div></section>
+</div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
