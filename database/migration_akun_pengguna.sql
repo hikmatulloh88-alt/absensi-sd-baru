@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS akun_pengguna (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ username VARCHAR(80) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ nama VARCHAR(150) NOT NULL,
+ role ENUM('admin','guru','siswa') NOT NULL DEFAULT 'admin',
+ guru_id INT UNSIGNED NULL,
+ siswa_id INT UNSIGNED NULL,
+ aktif TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX idx_akun_role (role),
+ INDEX idx_akun_guru (guru_id),
+ INDEX idx_akun_siswa (siswa_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
