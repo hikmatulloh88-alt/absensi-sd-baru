@@ -108,7 +108,7 @@ function dapodik_canonical_headers(array $headers, string $kind): array {
         'nis' => ['nis','nisd','nipd','nomor induk peserta didik','nomor induk siswa'],
         'rombel' => ['rombel','rombel saat ini','nama rombel','rombongan belajar','kelas'],
         'jenis_kelamin' => ['jenis kelamin','jk','l p','gender'],
-        'status' => ['status','status keaktifan','status gtk','status peserta didik'],
+        'status' => ['status','status keaktifan','status gtk','status peserta didik','status kepegawaian','status kepegawaian gtk'],
     ];
     $result = [];
     foreach ($headers as $i => $header) {
