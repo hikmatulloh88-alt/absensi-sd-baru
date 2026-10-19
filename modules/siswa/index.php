@@ -68,6 +68,51 @@ if (!$pdo) {
     require __DIR__ . '/../../includes/footer.php';
     exit;
 }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_photos_bulk') {
+    $files = $_FILES['photos'] ?? null;
+    $maxFiles = 500;
+    $allowedExtensions = ['jpg','jpeg','png','webp'];
+    if (!$files || !isset($files['name']) || !is_array($files['name']) || count($files['name']) === 0) {
+        $errors[] = 'Pilih foto siswa terlebih dahulu.';
+    } elseif (count($files['name']) > $maxFiles) {
+        $errors[] = 'Maksimal 500 foto dalam satu kali upload.';
+    } else {
+        $photoDir = __DIR__ . '/../../assets/images/siswa/';
+        if (!is_dir($photoDir) && !mkdir($photoDir, 0755, true) && !is_dir($photoDir)) {
+            $errors[] = 'Folder foto siswa gagal dibuat.';
+        } else {
+            $okCount = 0; $failCount = 0; $details = [];
+            $findStudent = $pdo->prepare('SELECT id FROM siswa WHERE id=? OR nis=? OR nisn=? LIMIT 1');
+            foreach ($files['name'] as $i => $originalName) {
+                $uploadError = $files['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+                if ($uploadError !== UPLOAD_ERR_OK) { $failCount++; $details[] = $originalName . ': gagal diunggah'; continue; }
+                if (($files['size'][$i] ?? 0) > 3 * 1024 * 1024) { $failCount++; $details[] = $originalName . ': lebih dari 3 MB'; continue; }
+                $tmp = $files['tmp_name'][$i] ?? '';
+                $info = pathinfo($originalName);
+                $code = trim((string)($info['filename'] ?? ''));
+                $extension = strtolower((string)($info['extension'] ?? ''));
+                if (!in_array($extension, $allowedExtensions, true)) { $failCount++; $details[] = $originalName . ': format harus JPG, PNG, WEBP'; continue; }
+                $imageInfo = @getimagesize($tmp);
+                $typeMap = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
+                $imageType = $imageInfo[2] ?? 0;
+                if (!$imageInfo || !isset($typeMap[$imageType])) { $failCount++; $details[] = $originalName . ': file bukan gambar valid'; continue; }
+                $idFromName = ctype_digit($code) ? (int)$code : 0;
+                $findStudent->execute([$idFromName, $code, $code]);
+                $studentId = (int)($findStudent->fetchColumn() ?: 0);
+                if ($studentId <= 0) { $failCount++; $details[] = $originalName . ': nama file harus ID, NIS, atau NISN siswa'; continue; }
+                $saveExt = $typeMap[$imageType];
+                $target = $photoDir . $studentId . '.' . $saveExt;
+                foreach (['jpg','jpeg','png','webp'] as $oldExt) {
+                    $oldPath = $photoDir . $studentId . '.' . $oldExt;
+                    if ($oldPath !== $target && is_file($oldPath)) @unlink($oldPath);
+                }
+                if (move_uploaded_file($tmp, $target)) { $okCount++; }
+                else { $failCount++; $details[] = $originalName . ': gagal disimpan'; }
+            }
+            $importResult = $okCount . ' foto berhasil diunggah' . ($failCount ? ', ' . $failCount . ' gagal: ' . implode('; ', array_slice($details, 0, 6)) : '.') ;
+        }
+    }
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_photo') {
     $photoId = (int)($_POST['id'] ?? 0);
     $photo = $_FILES['photo'] ?? null;
@@ -195,6 +240,8 @@ $totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE 
 <?php if(isset($_GET['deleted'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil dihapus.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
 <?php if ($importResult): ?><div class="notice" style="background:#e8f8f1;color:#13845e"><?= h($importResult) ?></div><?php endif; ?>
+<section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Upload Foto Siswa Massal</h3><p>Pilih banyak foto sekaligus. Nama file harus sama dengan ID siswa, NIS, atau NISN, contoh 1001.jpg atau 0123456789.png. Maksimal 500 foto, 3 MB per foto.</p></div></div>
+<form method="post" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="hidden" name="action" value="upload_photos_bulk"><input type="file" name="photos[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple required><button type="submit" onclick="return confirm('Upload foto siswa yang dipilih?')" style="padding:11px 16px;background:#1677f2;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer">Upload Foto Massal</button></form></section>
 <section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Upload Data Siswa Massal</h3><p>Gunakan file ekspor Peserta Didik asli dari Dapodik (.xlsx/CSV), tanpa mengubah susunan kolom. Format 46/66 kolom didukung jika header identitas dikenali; maksimal 5 MB.</p></div></div>
 <p style="margin:0 0 12px"><span style="color:#536179">Gunakan file ekspor Peserta Didik asli dari Dapodik; tidak perlu template khusus.</span></p>
 <form method="post" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="hidden" name="action" value="import_csv"><input type="file" name="csv_file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><button type="submit" onclick="return confirm('Proses upload data siswa dari CSV?')" style="padding:11px 16px;background:#0f8b68;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer">Upload Data Massal</button></form></section>
