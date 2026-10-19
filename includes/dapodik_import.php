@@ -30,10 +30,14 @@ function dapodik_read_rows(string $path, string $originalName): array {
         $ss = $zip->getFromName('xl/sharedStrings.xml');
         if ($ss !== false) {
             $xml = simplexml_load_string($ss);
-            if ($xml) foreach ($xml->si as $si) {
+            if ($xml) foreach ($xml->xpath('//*[local-name()="si"]') ?: [] as $si) {
                 $text = '';
-                if (isset($si->t)) $text = (string)$si->t;
-                else foreach ($si->r as $run) $text .= (string)$run->t;
+                $plain = $si->xpath('./*[local-name()="t"]') ?: [];
+                if ($plain) $text = (string)$plain[0];
+                else foreach (($si->xpath('.//*[local-name()="r"]') ?: []) as $run) {
+                    $t = $run->xpath('./*[local-name()="t"]') ?: [];
+                    if ($t) $text .= (string)$t[0];
+                }
                 $shared[] = $text;
             }
         }
@@ -43,10 +47,12 @@ function dapodik_read_rows(string $path, string $originalName): array {
         if ($workbook !== false && $rels !== false) {
             $wb = simplexml_load_string($workbook);
             $relXml = simplexml_load_string($rels);
-            if ($wb && $relXml && isset($wb->sheets->sheet[0])) {
-                $relNs = $wb->sheets->sheet[0]->attributes('http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+            $sheets = $wb ? ($wb->xpath('//*[local-name()="sheet"]') ?: []) : [];
+            if ($wb && $relXml && isset($sheets[0])) {
+                $relNs = $sheets[0]->attributes('http://schemas.openxmlformats.org/officeDocument/2006/relationships');
                 $rid = (string)($relNs['id'] ?? '');
-                foreach ($relXml->Relationship as $rel) {
+                $relationships = $relXml->xpath('//*[local-name()="Relationship"]') ?: [];
+                foreach ($relationships as $rel) {
                     if ((string)$rel['Id'] === $rid) {
                         $target = ltrim((string)$rel['Target'], '/');
                         $sheetPath = str_starts_with($target, 'xl/') ? $target : 'xl/'.$target;
@@ -61,17 +67,23 @@ function dapodik_read_rows(string $path, string $originalName): array {
         $sx = simplexml_load_string($sheet);
         if (!$sx) throw new RuntimeException('Isi lembar Excel tidak dapat dibaca.');
         $rows = [];
-        foreach ($sx->sheetData->row as $rowNode) {
+        $sheetRows = $sx->xpath('//*[local-name()="sheetData"]/*[local-name()="row"]') ?: [];
+        foreach ($sheetRows as $rowNode) {
             $row = [];
-            foreach ($rowNode->c as $cell) {
+            foreach (($rowNode->xpath('./*[local-name()="c"]') ?: []) as $cell) {
                 $ref = (string)$cell['r'];
                 preg_match('/^[A-Z]+/', $ref, $m);
                 $letters = $m[0] ?? 'A'; $col = 0;
                 foreach (str_split($letters) as $letter) $col = $col * 26 + ord($letter) - 64;
                 $col--;
-                $type = (string)$cell['t']; $value = (string)($cell->v ?? '');
+                $type = (string)$cell['t'];
+                $v = $cell->xpath('./*[local-name()="v"]') ?: [];
+                $value = $v ? (string)$v[0] : '';
                 if ($type === 's') $value = $shared[(int)$value] ?? '';
-                elseif ($type === 'inlineStr') $value = (string)($cell->is->t ?? '');
+                elseif ($type === 'inlineStr') {
+                    $t = $cell->xpath('.//*[local-name()="t"]') ?: [];
+                    $value = $t ? (string)$t[0] : '';
+                }
                 $row[$col] = $value;
             }
             if ($row) {
