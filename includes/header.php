@@ -12,7 +12,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($pageTitle) ?> · Absensi SDN Ciburayut 01</title>
-<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019matpel1">
+<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019rapor1">
 </head>
 <body>
 <div class="app-shell">
@@ -59,8 +59,8 @@ function navActive(string $needle): string { global $uri; return str_contains($u
       <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-nilai">
         <span class="nav-icon">▤</span><span class="nav-label">Nilai</span><span class="nav-chevron">⌄</span>
       </button>
-      <div class="nav-submenu" id="nav-nilai">
-        <span class="nav-sublink nav-unavailable"><span>▤</span>Rapor <small>Belum tersedia</small></span>
+      <div class="nav-submenu<?= str_contains($uri, '/modules/nilai/') ? ' expanded' : '' ?>" id="nav-nilai">
+        <a class="nav-sublink<?= navActive('/modules/nilai/') ?>" href="<?= h($basePath) ?>/modules/nilai/index.php"><span>▤</span>Rapor</a>
       </div>
     </div>
 
