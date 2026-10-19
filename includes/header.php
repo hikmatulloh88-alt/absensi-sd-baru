@@ -20,10 +20,27 @@ function navActive(string $needle): string { global $uri; return str_contains($u
   <div class="brand"><div class="brand-mark">AC</div><div><strong>ABSENSI<span>+</span></strong><small>SDN CIBURAYUT 01</small></div><button class="close-menu" id="closeMenu" aria-label="Tutup menu">×</button></div>
   <div class="nav-caption">MENU UTAMA</div>
   <nav class="nav-list">
-    <a class="nav-link<?= navActive('/index.php') ?>" href="<?= h($basePath) ?>/index.php"><span>▦</span>Dashboard</a>
+    <a class="nav-link<?= (str_ends_with($uri, '/index.php') && !str_contains($uri, '/modules/')) ? ' active' : '' ?>" href="<?= h($basePath) ?>/index.php"><span>▦</span>Dashboard</a>
     <a class="nav-link<?= navActive('/modules/absensi/') ?>" href="<?= h($basePath) ?>/modules/absensi/index.php"><span>◉</span>Absensi</a>
-    <a class="nav-link<?= navActive('/modules/guru/') ?>" href="<?= h($basePath) ?>/modules/guru/index.php"><span>♧</span>Data Guru</a>
-    <a class="nav-link<?= navActive('/modules/siswa/') ?>" href="<?= h($basePath) ?>/modules/siswa/index.php"><span>♙</span>Data Siswa</a>
+
+    <div class="nav-group<?= navActive('/modules/guru/') ?>">
+      <button class="nav-group-toggle<?= navActive('/modules/guru/') ?>" type="button" aria-expanded="<?= str_contains($uri, '/modules/guru/') ? 'true' : 'false' ?>" aria-controls="nav-gtk">
+        <span class="nav-icon">♧</span><span class="nav-label">GTK</span><span class="nav-chevron">›</span>
+      </button>
+      <div class="nav-submenu<?= str_contains($uri, '/modules/guru/') ? ' expanded' : '' ?>" id="nav-gtk">
+        <a class="nav-sublink<?= navActive('/modules/guru/') ?>" href="<?= h($basePath) ?>/modules/guru/index.php"><span>♧</span>Data Guru</a>
+      </div>
+    </div>
+
+    <div class="nav-group<?= navActive('/modules/siswa/') ?>">
+      <button class="nav-group-toggle<?= navActive('/modules/siswa/') ?>" type="button" aria-expanded="<?= str_contains($uri, '/modules/siswa/') ? 'true' : 'false' ?>" aria-controls="nav-siswa">
+        <span class="nav-icon">♙</span><span class="nav-label">Peserta Didik</span><span class="nav-chevron">›</span>
+      </button>
+      <div class="nav-submenu<?= str_contains($uri, '/modules/siswa/') ? ' expanded' : '' ?>" id="nav-siswa">
+        <a class="nav-sublink<?= navActive('/modules/siswa/') ?>" href="<?= h($basePath) ?>/modules/siswa/index.php"><span>♙</span>Data Siswa</a>
+      </div>
+    </div>
+
     <a class="nav-link<?= navActive('/modules/laporan/') ?>" href="<?= h($basePath) ?>/modules/laporan/index.php"><span>▤</span>Laporan</a>
   </nav>
   <div class="sidebar-bottom"><div class="school-avatar">SD</div><div><strong>SDN Ciburayut 01</strong><small>Mode pengembangan lokal</small></div></div>
