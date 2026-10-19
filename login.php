@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
    session_regenerate_id(true); $_SESSION['akun_id']=(int)$u['id']; $_SESSION['username']=$u['username']; $_SESSION['nama']=$u['nama']; $_SESSION['role']=$u['role'];
    if ($u['siswa_id']!==null) $_SESSION['siswa_id']=(int)$u['siswa_id']; else unset($_SESSION['siswa_id']);
    if ($u['guru_id']!==null) $_SESSION['guru_id']=(int)$u['guru_id']; else unset($_SESSION['guru_id']);
-   unset($_SESSION['csrf_login']); header('Location: index.php'); exit;
+   unset($_SESSION['csrf_login']); if ($u['role']==='siswa') { header('Location: modules/surat_siswa/index.php'); } else { header('Location: index.php'); } exit;
   } else $error='Username atau password salah, atau akun dinonaktifkan.';
  }
 }
