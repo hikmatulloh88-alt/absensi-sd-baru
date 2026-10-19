@@ -27,7 +27,7 @@ if (!in_array($script, $publicPages, true)) {
   try { $pdo->query("SELECT id FROM akun_pengguna LIMIT 1"); }
   catch (Throwable $e) { header('Location: ' . $basePath . '/setup_admin.php'); exit; }
   if (empty($_SESSION['akun_id'])) { header('Location: ' . $basePath . '/login.php'); exit; }
-  if (($_SESSION['role'] ?? '') === 'siswa' && !str_contains($scriptName, '/modules/surat_siswa/')) {
+  if (($_SESSION['role'] ?? '') === 'siswa' && !str_contains($scriptName, '/modules/surat_siswa/') && !str_contains($scriptName, '/modules/akun_saya/')) {
     http_response_code(403); exit('Akun siswa hanya dapat mengakses halaman pengajuan surat.');
   }
 }
