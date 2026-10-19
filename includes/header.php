@@ -38,6 +38,8 @@ function navActive(string $needle): string { global $uri; return str_contains($u
       </button>
       <div class="nav-submenu<?= str_contains($uri, '/modules/guru/') ? ' expanded' : '' ?>" id="nav-gtk">
         <a class="nav-sublink<?= navActive('/modules/guru/') ?>" href="<?= h($basePath) ?>/modules/guru/index.php"><span>🎓</span>Guru</a>
+        <a class="nav-sublink<?= navActive('/modules/profil_guru/') ?>" href="<?= h($basePath) ?>/modules/profil_guru/index.php"><span>👤</span>Profil Guru</a>
+        <a class="nav-sublink<?= navActive('/modules/administrasi_guru/') ?>" href="<?= h($basePath) ?>/modules/administrasi_guru/index.php"><span>📚</span>Administrasi Guru</a>
         <span class="nav-sublink nav-unavailable"><span>🎓</span>Tendik <small>Belum tersedia</small></span>
         <span class="nav-sublink nav-unavailable"><span>🎓</span><em>GTK Non-Aktif</em> <small>Belum tersedia</small></span>
       </div>
