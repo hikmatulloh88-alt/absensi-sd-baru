@@ -23,9 +23,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
     } else {
         try {
             $rows = dapodik_read_rows($_FILES['csv_file']['tmp_name'], $_FILES['csv_file']['name'] ?? '');
-            $headers = array_shift($rows) ?? [];
-            $map = dapodik_canonical_headers($headers, 'guru');
-            if (!isset($map['nama'])) {
+            // Ekspor GTK Dapodik dapat memiliki beberapa baris judul sebelum header tabel.
+            $headerIndex = null;
+            $map = [];
+            foreach (array_slice($rows, 0, 30, true) as $idx => $candidate) {
+                if (!is_array($candidate)) continue;
+                $candidateMap = dapodik_canonical_headers($candidate, 'guru');
+                if (isset($candidateMap['nama']) && (isset($candidateMap['nip']) || isset($candidateMap['jabatan']))) {
+                    $headerIndex = $idx;
+                    $map = $candidateMap;
+                    break;
+                }
+            }
+            if ($headerIndex === null) {
+                $errors[] = 'Header kolom Nama tidak ditemukan pada 30 baris pertama. Pastikan file merupakan ekspor GTK Dapodik.';
+            } else {
+                $rows = array_slice($rows, $headerIndex + 1);
+            }
+            if ($headerIndex === null) {
+                // Pesan kesalahan sudah ditambahkan saat header tidak ditemukan.
+            } elseif (!isset($map['nama'])) {
                 $errors[] = 'Kolom Nama tidak ditemukan pada file Dapodik. Pastikan menggunakan file ekspor GTK.';
             } else {
                 $ok = 0; $skip = 0;
