@@ -3,6 +3,14 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 $pageTitle = 'Rombongan Belajar';
 $errors = [];
 $success = '';
+if (!$pdo) {
+  http_response_code(500);
+  require __DIR__ . '/../../includes/header.php';
+  echo '<div class="notice warning">Database belum tersambung. Periksa config/database.php.</div>';
+  require __DIR__ . '/../../includes/footer.php';
+  exit;
+}
+
 $pdo->exec("CREATE TABLE IF NOT EXISTS rombel (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   nama VARCHAR(30) NOT NULL UNIQUE,
@@ -37,15 +45,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($studentId < 1 || !$namaRombel) {
       $errors[] = 'Pilih siswa dan rombel yang valid.';
     } else {
-      $stmt = $pdo->prepare("UPDATE siswa SET rombel=? WHERE id=?");
+      $stmt = $pdo->prepare("UPDATE siswa SET rombel=? WHERE id=? AND status='aktif' AND (rombel IS NULL OR rombel='')");
       $stmt->execute([$namaRombel, $studentId]);
-      header('Location: index.php?assigned=1&rombel=' . $rombelId); exit;
+      if ($stmt->rowCount() < 1) {
+        $errors[] = 'Siswa tidak ditemukan, sudah memiliki rombel, atau statusnya tidak aktif.';
+      } else {
+        header('Location: index.php?assigned=1&rombel=' . $rombelId); exit;
+      }
     }
   } elseif ($action === 'remove_student') {
     $studentId = (int)($_POST['siswa_id'] ?? 0);
-    $stmt = $pdo->prepare("UPDATE siswa SET rombel=NULL WHERE id=?");
-    $stmt->execute([$studentId]);
-    header('Location: index.php?removed=1&rombel=' . (int)($_POST['rombel_id'] ?? 0)); exit;
+    $rombelId = (int)($_POST['rombel_id'] ?? 0);
+    $stmt = $pdo->prepare("SELECT nama FROM rombel WHERE id=? AND jenis='reguler'");
+    $stmt->execute([$rombelId]);
+    $namaRombel = $stmt->fetchColumn();
+    if ($studentId > 0 && $namaRombel) {
+      $stmt = $pdo->prepare('UPDATE siswa SET rombel=NULL WHERE id=? AND rombel=?');
+      $stmt->execute([$studentId, $namaRombel]);
+      if ($stmt->rowCount() > 0) {
+        header('Location: index.php?removed=1&rombel=' . $rombelId); exit;
+      }
+    }
+    $errors[] = 'Siswa tidak ditemukan di rombel yang dipilih.';
   } elseif ($action === 'delete') {
     $id = (int)($_POST['id'] ?? 0);
     $stmt = $pdo->prepare("SELECT nama FROM rombel WHERE id=? AND jenis='reguler'");
@@ -78,6 +99,7 @@ if ($selected) {
   $stmt = $pdo->prepare("SELECT id,nisn,nis,nama,jenis_kelamin FROM siswa WHERE rombel=? AND status='aktif' ORDER BY nama");
   $stmt->execute([$selected['nama']]); $students = $stmt->fetchAll();
 }
+$unassignedCount = (int)$pdo->query("SELECT COUNT(*) FROM siswa WHERE status='aktif' AND (rombel IS NULL OR rombel='')")->fetchColumn();
 $unassigned = $pdo->query("SELECT id,nisn,nis,nama FROM siswa WHERE status='aktif' AND (rombel IS NULL OR rombel='') ORDER BY nama LIMIT 500")->fetchAll();
 require __DIR__ . '/../../includes/header.php';
 ?>
@@ -109,7 +131,7 @@ require __DIR__ . '/../../includes/header.php';
 <div class="rb-stats">
   <div class="rb-stat"><span>Total Rombel Reguler</span><strong><?= count($rombels) ?></strong></div>
   <div class="rb-stat"><span>Total Siswa Aktif</span><strong><?= (int)$pdo->query("SELECT COUNT(*) FROM siswa WHERE status='aktif'")->fetchColumn() ?></strong></div>
-  <div class="rb-stat"><span>Belum Masuk Rombel</span><strong><?= count($unassigned) ?></strong></div>
+  <div class="rb-stat"><span>Belum Masuk Rombel</span><strong><?= $unassignedCount ?></strong></div>
 </div>
 <div class="rb-layout">
 <section class="rb-card">
