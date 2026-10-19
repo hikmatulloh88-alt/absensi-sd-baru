@@ -68,3 +68,27 @@ CREATE TABLE IF NOT EXISTS absensi (
 INSERT INTO guru (nip,nama,jabatan) VALUES
 ('','Administrator Demo','Administrator')
 ON DUPLICATE KEY UPDATE nama=VALUES(nama);
+
+
+CREATE TABLE IF NOT EXISTS rapor_nilai (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, siswa_id INT UNSIGNED NOT NULL,
+ semester TINYINT UNSIGNED NOT NULL, tahun_pelajaran VARCHAR(20) NOT NULL,
+ mapel VARCHAR(100) NOT NULL, kkm DECIMAL(5,2) NOT NULL DEFAULT 75, nilai DECIMAL(5,2) NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_rapor_siswa_semester_mapel (siswa_id,semester,tahun_pelajaran,mapel),
+ INDEX idx_rapor_semester (semester,tahun_pelajaran),
+ CONSTRAINT fk_rapor_nilai_siswa FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rapor_catatan (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, siswa_id INT UNSIGNED NOT NULL,
+ semester TINYINT UNSIGNED NOT NULL, tahun_pelajaran VARCHAR(20) NOT NULL,
+ hadir INT UNSIGNED NOT NULL DEFAULT 0, sakit INT UNSIGNED NOT NULL DEFAULT 0,
+ izin INT UNSIGNED NOT NULL DEFAULT 0, alpa INT UNSIGNED NOT NULL DEFAULT 0,
+ sikap VARCHAR(255) NULL, kerajinan VARCHAR(255) NULL, kebersihan VARCHAR(255) NULL,
+ ekskul VARCHAR(255) NULL, catatan_wali TEXT NULL, wali_kelas VARCHAR(150) NULL,
+ nip_wali VARCHAR(40) NULL, kepala_sekolah VARCHAR(150) NULL, nip_kepala VARCHAR(40) NULL,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_rapor_catatan (siswa_id,semester,tahun_pelajaran),
+ CONSTRAINT fk_rapor_catatan_siswa FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
