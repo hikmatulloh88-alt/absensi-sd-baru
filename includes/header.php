@@ -12,7 +12,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($pageTitle) ?> · Absensi SDN Ciburayut 01</title>
-<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019menusfull">
+<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019rombel1">
 </head>
 <body>
 <div class="app-shell">
@@ -48,8 +48,8 @@ function navActive(string $needle): string { global $uri; return str_contains($u
       <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-rombel">
         <span class="nav-icon">♟</span><span class="nav-label">Rombongan Belajar</span><span class="nav-chevron">⌄</span>
       </button>
-      <div class="nav-submenu" id="nav-rombel">
-        <span class="nav-sublink nav-unavailable"><span>♟</span>Reguler <small>Belum tersedia</small></span>
+      <div class="nav-submenu<?= str_contains($uri, '/modules/rombel/') ? ' expanded' : '' ?>" id="nav-rombel">
+        <a class="nav-sublink<?= navActive('/modules/rombel/') ?>" href="<?= h($basePath) ?>/modules/rombel/index.php"><span>♟</span>Reguler</a>
         <span class="nav-sublink nav-unavailable"><span>⚽</span>Ekskul <small>Belum tersedia</small></span>
         <span class="nav-sublink nav-unavailable"><span>⚑</span>Matpel Pilihan <small>Belum tersedia</small></span>
       </div>
