@@ -26,6 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     if ($action === 'generate_missing') {
       $created = 0; $skipped = 0; $reasons = [];
+      // Normalisasi akun guru/siswa versi lama: hapus @ sebelum domain cbr.
+      $oldAccounts = $pdo->query("SELECT id,username,role FROM akun_pengguna WHERE role IN ('guru','siswa')")->fetchAll();
+      foreach ($oldAccounts as $oldAccount) {
+        $oldUsername = (string)$oldAccount['username'];
+        $newUsername = preg_replace('/@(?=cbr\.(?:guru|siswa)\.id$)/i', '.', $oldUsername);
+        if ($newUsername !== $oldUsername) {
+          $check = $pdo->prepare('SELECT id FROM akun_pengguna WHERE username=? AND id<>? LIMIT 1');
+          $check->execute([$newUsername,(int)$oldAccount['id']]);
+          if (!$check->fetch()) {
+            $upd = $pdo->prepare('UPDATE akun_pengguna SET username=? WHERE id=?');
+            $upd->execute([$newUsername,(int)$oldAccount['id']]);
+          } else { $reasons[] = 'Username bentrok saat normalisasi: ' . $oldUsername; }
+        }
+      }
       $hasNip = akun_column_exists($pdo, 'guru', 'nip');
       $hasNik = akun_column_exists($pdo, 'guru', 'nik');
       $identityExpr = $hasNip && $hasNik ? "COALESCE(NULLIF(nip,''),NULLIF(nik,''),'')" : ($hasNip ? "COALESCE(nip,'')" : ($hasNik ? "COALESCE(nik,'')" : "''"));
@@ -104,7 +118,7 @@ require __DIR__ . '/../../includes/header.php';
 <?php if ($errors): ?><div class="account-alert error"><?php foreach ($errors as $e): ?><div><?= h($e) ?></div><?php endforeach; ?></div><?php endif; ?>
 <div class="account-grid">
 <section class="account-card">
-<h2>Generate Akun Otomatis</h2><p class="account-muted">Username dari nama: nama@cbr.guru.id atau nama@cbr.siswa.id. Password awal guru = NIP/NIK; siswa = NISN. Akun yang sudah ada tidak ditimpa.</p>
+<h2>Generate Akun Otomatis</h2><p class="account-muted">Username dari nama: nama.cbr.guru.id atau nama.cbr.siswa.id. Password awal guru = NIP/NIK; siswa = NISN. Akun yang sudah ada tidak ditimpa.</p>
 <form method="post" onsubmit="return confirm('Generate akun untuk semua guru dan siswa aktif yang belum memiliki akun? Catat dan bagikan kredensial secara aman.')"><input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_akun']) ?>"><input type="hidden" name="action" value="generate_missing"><button class="account-btn" type="submit">⚡ Generate Akun Guru &amp; Siswa</button></form>
 <hr style="border:0;border-top:1px solid #edf0f5;margin:20px 0">
 <h2>Buat Akun Manual</h2><p class="account-muted">Untuk satu akun khusus; akun ditautkan ke data yang sudah ada.</p>
@@ -122,7 +136,7 @@ require __DIR__ . '/../../includes/header.php';
 <section class="account-card"><h2>Daftar Akun</h2><p class="account-muted">Password tidak ditampilkan. Gunakan reset password jika pengguna lupa.</p>
 <div class="account-count"><?= count($accounts) ?> akun terdaftar</div>
 <div class="account-table-wrap"><table class="account-table"><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Pengaturan</th></tr></thead><tbody>
-<?php foreach($accounts as $a): ?><tr><td><strong><?= h($a['nama']) ?></strong><br><span style="color:#667085">@<?= h($a['username']) ?></span><?php if($a['role']==='guru' && $a['nama_guru']): ?><br><small><?= h($a['nama_guru']) ?></small><?php elseif($a['role']==='siswa' && $a['nama_siswa']): ?><br><small><?= h($a['nama_siswa']) ?><?= $a['rombel'] ? ' · '.h($a['rombel']) : '' ?></small><?php endif; ?></td><td><?= h(strtoupper($a['role'])) ?></td><td><span class="account-status<?= $a['aktif'] ? '' : ' off' ?>"><?= $a['aktif'] ? 'Aktif' : 'Nonaktif' ?></span></td><td><div class="account-actions">
+<?php foreach($accounts as $a): ?><tr><td><strong><?= h($a['nama']) ?></strong><br><span style="color:#667085"><?= h($a['username']) ?></span><?php if($a['role']==='guru' && $a['nama_guru']): ?><br><small><?= h($a['nama_guru']) ?></small><?php elseif($a['role']==='siswa' && $a['nama_siswa']): ?><br><small><?= h($a['nama_siswa']) ?><?= $a['rombel'] ? ' · '.h($a['rombel']) : '' ?></small><?php endif; ?></td><td><?= h(strtoupper($a['role'])) ?></td><td><span class="account-status<?= $a['aktif'] ? '' : ' off' ?>"><?= $a['aktif'] ? 'Aktif' : 'Nonaktif' ?></span></td><td><div class="account-actions">
 <form method="post"><input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_akun']) ?>"><input type="hidden" name="action" value="reset"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><input type="password" name="password_baru" minlength="10" required placeholder="Password baru" aria-label="Password baru"><button class="account-btn secondary" type="submit">Reset</button></form>
 <?php if($a['role']!=='admin'): ?><form method="post" onsubmit="return confirm('Ubah status akun ini?')"><input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_akun']) ?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><button class="account-btn <?= $a['aktif'] ? 'danger' : 'secondary' ?>" type="submit"><?= $a['aktif'] ? 'Nonaktifkan' : 'Aktifkan' ?></button></form><?php endif; ?>
 </div></td></tr><?php endforeach; ?>
