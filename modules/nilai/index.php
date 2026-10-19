@@ -4,14 +4,26 @@ $pageTitle='Nilai - Rapor'; $errors=[]; $success='';
 if(!$pdo){http_response_code(500);require __DIR__.'/../../includes/header.php';echo '<div class="notice warning">Database belum tersambung. Periksa config/database.php.</div>';require __DIR__.'/../../includes/footer.php';exit;}
 $pdo->exec("CREATE TABLE IF NOT EXISTS rapor_nilai(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,siswa_id INT UNSIGNED NOT NULL,semester TINYINT UNSIGNED NOT NULL,tahun_pelajaran VARCHAR(20) NOT NULL,mapel VARCHAR(100) NOT NULL,kkm DECIMAL(5,2) NOT NULL DEFAULT 75,nilai DECIMAL(5,2) NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_rapor_siswa_semester_mapel(siswa_id,semester,tahun_pelajaran,mapel),INDEX idx_rapor_semester(semester,tahun_pelajaran),CONSTRAINT fk_rapor_nilai_siswa FOREIGN KEY(siswa_id) REFERENCES siswa(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 $pdo->exec("CREATE TABLE IF NOT EXISTS rapor_catatan(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,siswa_id INT UNSIGNED NOT NULL,semester TINYINT UNSIGNED NOT NULL,tahun_pelajaran VARCHAR(20) NOT NULL,hadir INT UNSIGNED NOT NULL DEFAULT 0,sakit INT UNSIGNED NOT NULL DEFAULT 0,izin INT UNSIGNED NOT NULL DEFAULT 0,alpa INT UNSIGNED NOT NULL DEFAULT 0,sikap VARCHAR(255) NULL,kerajinan VARCHAR(255) NULL,kebersihan VARCHAR(255) NULL,ekskul VARCHAR(255) NULL,catatan_wali TEXT NULL,wali_kelas VARCHAR(150) NULL,nip_wali VARCHAR(40) NULL,kepala_sekolah VARCHAR(150) NULL,nip_kepala VARCHAR(40) NULL,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_rapor_catatan(siswa_id,semester,tahun_pelajaran),CONSTRAINT fk_rapor_catatan_siswa FOREIGN KEY(siswa_id) REFERENCES siswa(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-// Unduh template CSV untuk upload nilai massal.
+// Pilihan mapel untuk form dan template massal.
+$mapels=['Pendidikan Agama','Pendidikan Pancasila','Bahasa Indonesia','Matematika','IPAS','Seni Budaya','PJOK','Bahasa Sunda','Bahasa Inggris','Muatan Lokal'];
+$kelasList=$pdo->query("SELECT DISTINCT rombel FROM siswa WHERE status='aktif' AND rombel IS NOT NULL AND TRIM(rombel)<>'' ORDER BY rombel")->fetchAll(PDO::FETCH_COLUMN);
+$existingMapels=$pdo->query("SELECT DISTINCT mapel FROM rapor_nilai ORDER BY mapel")->fetchAll(PDO::FETCH_COLUMN);
+$mapels=array_values(array_unique(array_merge($mapels,$existingMapels)));
+// Unduh template CSV: dapat difilter berdasarkan rombel dan mapel.
 if (($_GET['download'] ?? '') === 'template') {
+ $kelas=trim((string)($_GET['kelas']??''));
+ $mapel=trim((string)($_GET['mapel']??''));
  header('Content-Type: text/csv; charset=UTF-8');
- header('Content-Disposition: attachment; filename="template_upload_nilai.csv"');
+ $safeKelas=preg_replace('/[^A-Za-z0-9_-]+/','_', $kelas);
+ header('Content-Disposition: attachment; filename="template_nilai'.($safeKelas?'_'.$safeKelas:'').'.csv"');
  $out=fopen('php://output','w'); fwrite($out,"\xEF\xBB\xBF");
  fputcsv($out,['nisn','nis','nama','rombel','mapel','kkm','nilai'],';');
- $st=$pdo->query("SELECT nisn,nis,nama,rombel FROM siswa WHERE status='aktif' ORDER BY rombel,nama");
- foreach($st->fetchAll() as $s) fputcsv($out,[$s['nisn'],$s['nis'],$s['nama'],$s['rombel'],'',75,''],';');
+ $sql="SELECT nisn,nis,nama,rombel FROM siswa WHERE status='aktif'";
+ $params=[];
+ if($kelas!==''){$sql.=" AND rombel=?";$params[]=$kelas;}
+ $sql.=" ORDER BY rombel,nama";
+ $st=$pdo->prepare($sql);$st->execute($params);
+ foreach($st->fetchAll() as $s) fputcsv($out,[$s['nisn'],$s['nis'],$s['nama'],$s['rombel'],$mapel,75,''],';');
  fclose($out); exit;
 }
 $sid=(int)($_REQUEST['siswa_id']??0);$sem=(int)($_REQUEST['semester']??1);if($sem<1||$sem>12)$sem=1;$year=trim($_REQUEST['tahun_pelajaran']??'2026/2027');if(!preg_match('~^\d{4}/\d{4}$~',$year))$year='2026/2027';
@@ -72,7 +84,6 @@ $grades=[];$notes=[];$avg=0;$rank=null;
 if($student){$st=$pdo->prepare('SELECT mapel,kkm,nilai FROM rapor_nilai WHERE siswa_id=? AND semester=? AND tahun_pelajaran=? ORDER BY mapel');$st->execute([$sid,$sem,$year]);$grades=$st->fetchAll();if($grades)$avg=array_sum(array_map(fn($g)=>(float)$g['nilai'],$grades))/count($grades);$st=$pdo->prepare('SELECT * FROM rapor_catatan WHERE siswa_id=? AND semester=? AND tahun_pelajaran=?');$st->execute([$sid,$sem,$year]);$notes=$st->fetch()?:[];
  if($student['rombel']){$st=$pdo->prepare("SELECT rn.siswa_id,AVG(rn.nilai) rata FROM rapor_nilai rn JOIN siswa s ON s.id=rn.siswa_id WHERE rn.semester=? AND rn.tahun_pelajaran=? AND s.rombel=? AND s.status='aktif' GROUP BY rn.siswa_id ORDER BY rata DESC");$st->execute([$sem,$year,$student['rombel']]);foreach($st->fetchAll() as $i=>$r)if((int)$r['siswa_id']===$sid){$rank=$i+1;break;}}
 }
-$mapels=['Pendidikan Agama','Pendidikan Pancasila','Bahasa Indonesia','Matematika','IPAS','Seni Budaya','PJOK','Bahasa Sunda','Bahasa Inggris','Muatan Lokal'];
 require __DIR__.'/../../includes/header.php';
 ?>
 <style>
@@ -83,7 +94,7 @@ require __DIR__.'/../../includes/header.php';
 <div class="rp">
 <section class="welcome"><div><span class="eyebrow">PENGELOLAAN NILAI</span><h2>Rapor Peserta Didik</h2><p>Input nilai per mata pelajaran, kelola catatan semester, dan cetak rapor A4 portrait.</p></div><button class="btn no-print" onclick="window.print()" type="button">⎙ Cetak Rapor</button></section>
 <?php foreach($errors as $e):?><div class="notice warning"><?=h($e)?></div><?php endforeach;?><?php if($success):?><div class="notice" style="background:#e8f8f1;color:#13845e"><?=h($success)?></div><?php endif;?>
-<section class="card no-print"><h3>Upload Nilai Massal</h3><p>Unduh template CSV, isi kolom mapel, KKM, dan nilai di Excel, lalu simpan sebagai CSV UTF-8.</p><div class="toolbar" style="margin-bottom:14px"><a class="btn" style="text-decoration:none" href="index.php?download=template">Unduh Template CSV</a></div><form method="post" enctype="multipart/form-data" class="toolbar"><input type="hidden" name="action" value="upload_csv"><label>File CSV<input type="file" name="file_nilai" accept=".csv,text/csv" required></label><label>Semester<select name="semester"><?php for($i=1;$i<=12;$i++):?><option value="<?=$i?>"<?=$sem===$i?' selected':''?>>Semester <?=$i?></option><?php endfor;?></select></label><label>Tahun Pelajaran<input name="tahun_pelajaran" value="<?=h($year)?>" pattern="\\d{4}/\\d{4}" required></label><button class="btn" type="submit">Upload Nilai</button></form></section>
+<section class="card no-print"><h3>Upload Nilai Massal</h3><p>Pilih kelas dan mata pelajaran sebelum mengunduh template. Template hanya berisi siswa dari kelas terpilih, dan nama mapel otomatis diisi.</p><form method="get" class="toolbar" style="margin-bottom:14px"><input type="hidden" name="download" value="template"><label>Pilih Kelas<select name="kelas"><option value="">Semua Kelas</option><?php foreach($kelasList as $k):?><option value="<?=h($k)?>"><?=h($k)?></option><?php endforeach;?></select></label><label>Pilih Mata Pelajaran<select name="mapel" required><?php foreach($mapels as $m):?><option value="<?=h($m)?>"><?=h($m)?></option><?php endforeach;?></select></label><button class="btn" type="submit">Unduh Template CSV</button></form><form method="post" enctype="multipart/form-data" class="toolbar"><input type="hidden" name="action" value="upload_csv"><label>File CSV<input type="file" name="file_nilai" accept=".csv,text/csv" required></label><label>Semester<select name="semester"><?php for($i=1;$i<=12;$i++):?><option value="<?=$i?>"<?=$sem===$i?' selected':''?>>Semester <?=$i?></option><?php endfor;?></select></label><label>Tahun Pelajaran<input name="tahun_pelajaran" value="<?=h($year)?>" pattern="\\d{4}/\\d{4}" required></label><button class="btn" type="submit">Upload Nilai</button></form></section>
 <section class="card no-print"><form method="get" class="toolbar"><label>Pilih Siswa<select name="siswa_id" required><?php foreach($students as $s):?><option value="<?=$s['id']?>"<?=(int)$s['id']===$sid?' selected':''?>><?=h($s['nama'])?><?=$s['rombel']?' · '.h($s['rombel']):''?></option><?php endforeach;?></select></label><label>Semester<select name="semester"><?php for($i=1;$i<=12;$i++):?><option value="<?=$i?>"<?=$sem===$i?' selected':''?>>Semester <?=$i?> (SM<?=$i?>)</option><?php endfor;?></select></label><label>Tahun Pelajaran<input name="tahun_pelajaran" value="<?=h($year)?>" pattern="\d{4}/\d{4}" required></label><button class="btn">Tampilkan</button></form></section>
 <?php if($student):?>
 <div class="print-head"><h2>RAPOR HASIL BELAJAR PESERTA DIDIK</h2><p>SDN CIBURAYUT 01</p><p>Tahun Pelajaran <?=h($year)?> · Semester <?=$sem?> (SM<?=$sem?>)</p></div>
