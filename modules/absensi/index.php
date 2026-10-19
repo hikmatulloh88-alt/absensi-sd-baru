@@ -12,6 +12,28 @@ $errors = [];
 $jenis = ($_REQUEST['jenis'] ?? 'siswa') === 'guru' ? 'guru' : 'siswa';
 $tanggal = trim($_REQUEST['tanggal'] ?? date('Y-m-d'));
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) $tanggal = date('Y-m-d');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'scan_card') {
+    $jenis = ($_POST['jenis'] ?? 'siswa') === 'guru' ? 'guru' : 'siswa';
+    $tanggal = trim($_POST['tanggal'] ?? date('Y-m-d'));
+    if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $tanggal)) $tanggal = date('Y-m-d');
+    $kodeKartu = trim((string)($_POST['kode_kartu'] ?? ''));
+    if ($kodeKartu === '' || strlen($kodeKartu) > 100) {
+        $errors[] = 'Kode kartu kosong atau tidak valid. Scan ulang kartu.';
+    } else {
+        $personTable = $jenis === 'guru' ? 'guru' : 'siswa';
+        $identityColumn = $jenis === 'guru' ? 'nip' : 'nisn';
+        $stmt = $pdo->prepare("SELECT id,nama FROM {$personTable} WHERE status='aktif' AND ({$identityColumn}=?".($jenis === 'siswa' ? " OR nis=?" : "").") LIMIT 1");
+        $stmt->execute($jenis === 'siswa' ? [$kodeKartu,$kodeKartu] : [$kodeKartu]);
+        $person = $stmt->fetch();
+        if (!$person) {
+            $errors[] = 'Kartu tidak ditemukan. Pastikan kode QR/barcode berisi NISN/NIS siswa atau NIP guru dan datanya aktif.';
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO absensi (jenis,referensi_id,tanggal,waktu,status,keterangan) VALUES (?,?,?,?,'hadir','Scan kartu') ON DUPLICATE KEY UPDATE waktu=VALUES(waktu),status='hadir',keterangan='Scan kartu'");
+            $stmt->execute([$jenis,(int)$person['id'],$tanggal,date('H:i:s')]);
+            header('Location: index.php?scan=1&nama='.urlencode($person['nama']).'&jenis='.urlencode($jenis).'&tanggal='.urlencode($tanggal)); exit;
+        }
+    }
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save') {
     $jenis = ($_POST['jenis'] ?? 'siswa') === 'guru' ? 'guru' : 'siswa';
     $tanggal = trim($_POST['tanggal'] ?? date('Y-m-d'));
@@ -45,10 +67,19 @@ require __DIR__ . '/../../includes/header.php';
 ?>
 <section class="welcome"><div><span class="eyebrow">KEHADIRAN HARIAN</span><h2>Catat Absensi</h2><p>Input dan pantau kehadiran guru maupun siswa.</p></div><div class="date-chip"><?= h(date('d-m-Y',strtotime($tanggal))) ?></div></section>
 <?php if(isset($_GET['saved'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Absensi berhasil disimpan.</div><?php endif; ?>
+<?php if(isset($_GET['scan'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Scan berhasil: <b><?= h($_GET['nama'] ?? 'Absensi tersimpan') ?></b> — status Hadir.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
 <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:20px">
 <?php foreach(['hadir'=>'Hadir','izin'=>'Izin','sakit'=>'Sakit','alpa'=>'Alpa','terlambat'=>'Terlambat'] as $key=>$label): ?><article class="stat-card"><div class="stat-label"><?= h($label) ?></div><div class="stat-number"><?= (int)$counts[$key] ?></div><div class="stat-foot">Catatan tanggal ini</div></article><?php endforeach; ?>
 </div>
+<section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Scan Kartu <?= $jenis==='guru'?'Guru':'Siswa' ?></h3><p>Scan QR/barcode kartu dengan kamera atau scanner USB. Isi QR/barcode: <?= $jenis==='guru'?'NIP guru':'NISN atau NIS siswa' ?>. Hasil scan langsung dicatat sebagai Hadir.</p></div></div>
+<form id="scanCardForm" method="post" action="index.php" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
+<input type="hidden" name="action" value="scan_card"><input type="hidden" name="jenis" value="<?= h($jenis) ?>"><input type="hidden" name="tanggal" value="<?= h($tanggal) ?>">
+<label>Kode kartu<input id="kodeKartu" name="kode_kartu" autocomplete="off" autofocus required placeholder="Scan kartu di sini" style="display:block;width:100%;box-sizing:border-box;padding:11px;border:1px solid #dce3ed;border-radius:8px;margin-top:6px"></label>
+<button type="submit" style="padding:11px 16px;background:#4263eb;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer">Catat Hasil Scan</button>
+<button type="button" id="startCameraScan" style="padding:11px 16px;background:#edf1ff;color:#3556cf;border:0;border-radius:8px;font-weight:700;cursor:pointer">Buka Kamera</button>
+</form><div id="cameraScanBox" hidden style="margin-top:12px"><video id="cardScanVideo" playsinline muted style="width:100%;max-width:480px;border-radius:12px;background:#111"></video><p id="cameraScanStatus" style="font-size:12px;color:#718096">Arahkan kamera ke QR/barcode kartu.</p><button type="button" id="stopCameraScan" style="padding:9px 13px;border:0;border-radius:8px;background:#edf1f7;cursor:pointer">Tutup Kamera</button></div>
+</section>
 <section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Input Kehadiran</h3><p>Satu orang hanya memiliki satu catatan per tanggal; penyimpanan ulang memperbarui catatan.</p></div></div>
 <form method="post" action="index.php" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end">
 <input type="hidden" name="action" value="save">
@@ -68,5 +99,12 @@ require __DIR__ . '/../../includes/header.php';
 <?php if(!$rows): ?><tr><td colspan="6" style="padding:20px;color:#8290a5;text-align:center">Belum ada catatan absensi untuk pilihan ini.</td></tr><?php endif; ?>
 <?php foreach($rows as $row): ?><tr><td style="padding:12px;border-bottom:1px solid #edf1f6;font-weight:600"><?= h($jenis==='guru'?$row['nama_guru']:$row['nama_siswa']) ?></td><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h($row['rombel']??'-') ?></td><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h($row['tanggal']) ?></td><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h(substr((string)$row['waktu'],0,5)?:'-') ?></td><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h(ucfirst($row['status'])) ?></td><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h($row['keterangan']??'-') ?></td></tr><?php endforeach; ?>
 </tbody></table></div></section>
-<style>@media print{.sidebar,header nav,form,button{display:none!important}body{background:#fff}.panel,.stat-card{box-shadow:none;break-inside:avoid}}</style>
+<script>
+(()=>{const start=document.getElementById('startCameraScan'),box=document.getElementById('cameraScanBox'),video=document.getElementById('cardScanVideo'),input=document.getElementById('kodeKartu'),form=document.getElementById('scanCardForm'),status=document.getElementById('cameraScanStatus');let stream=null,raf=null,detector=null;
+async function stop(){if(raf)cancelAnimationFrame(raf);raf=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;if(video)video.srcObject=null;if(box)box.hidden=true;}
+start?.addEventListener('click',async()=>{if(!('BarcodeDetector' in window)){status.textContent='Browser ini belum mendukung scan kamera otomatis. Gunakan scanner USB atau ketik kode kartu.';box.hidden=false;return;}try{detector=new BarcodeDetector({formats:['qr_code','code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf']});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});video.srcObject=stream;box.hidden=false;await video.play();status.textContent='Kamera aktif. Arahkan ke QR/barcode kartu.';const scan=async()=>{if(!stream)return;try{const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){input.value=codes[0].rawValue.trim();status.textContent='Kartu terbaca. Menyimpan absensi…';await stop();form.requestSubmit();return;}}catch(e){}raf=requestAnimationFrame(scan);};scan();}catch(e){box.hidden=false;status.textContent='Kamera tidak dapat dibuka. Izinkan akses kamera atau gunakan scanner USB.';}});
+document.getElementById('stopCameraScan')?.addEventListener('click',stop);window.addEventListener('pagehide',stop);
+})();
+</script>
+<style>@media print{.sidebar,header nav,form,button,#cameraScanBox{display:none!important}body{background:#fff}.panel,.stat-card{box-shadow:none;break-inside:avoid}}</style>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
