@@ -68,6 +68,38 @@ if (!$pdo) {
     require __DIR__ . '/../../includes/footer.php';
     exit;
 }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_photo') {
+    $photoId = (int)($_POST['id'] ?? 0);
+    $photo = $_FILES['photo'] ?? null;
+    if ($photoId <= 0 || !$photo || ($photo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        $errors[] = 'Pilih foto siswa yang valid.';
+    } elseif (($photo['size'] ?? 0) > 3 * 1024 * 1024) {
+        $errors[] = 'Ukuran foto maksimal 3 MB.';
+    } else {
+        $imageInfo = @getimagesize($photo['tmp_name']);
+        $allowedTypes = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
+        $imageType = $imageInfo[2] ?? 0;
+        if (!$imageInfo || !isset($allowedTypes[$imageType])) {
+            $errors[] = 'Foto harus berformat JPG, PNG, atau WEBP.';
+        } else {
+            $photoDir = __DIR__ . '/../../assets/images/siswa/';
+            if (!is_dir($photoDir) && !mkdir($photoDir, 0755, true) && !is_dir($photoDir)) {
+                $errors[] = 'Folder foto siswa gagal dibuat.';
+            } else {
+                $extension = $allowedTypes[$imageType];
+                $photoPath = $photoDir . $photoId . '.' . $extension;
+                foreach (['jpg','jpeg','png','webp'] as $oldExt) {
+                    $oldPath = $photoDir . $photoId . '.' . $oldExt;
+                    if ($oldPath !== $photoPath && is_file($oldPath)) @unlink($oldPath);
+                }
+                if (move_uploaded_file($photo['tmp_name'], $photoPath)) {
+                    header('Location: index.php?photo_saved=1'); exit;
+                }
+                $errors[] = 'Foto gagal disimpan ke server.';
+            }
+        }
+    }
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
@@ -158,6 +190,7 @@ $totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE 
 <div class="student-stat amber"><div class="stat-icon">🏫</div><div class="label">Rombel Aktif</div><div class="value"><?= number_format($totalRombel,0,',','.') ?></div><div class="hint">Rombongan belajar terdata</div></div>
 </section>
 <div class="student-list-count"><?= count($siswas) ?> data siswa ditampilkan</div>
+<?php if(isset($_GET['photo_saved'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Foto siswa berhasil diperbarui.</div><?php endif; ?>
 <?php if(isset($_GET['saved'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil disimpan.</div><?php endif; ?>
 <?php if(isset($_GET['deleted'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil dihapus.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
@@ -178,9 +211,9 @@ $totalRombel = (int)$pdo->query("SELECT COUNT(DISTINCT rombel) FROM siswa WHERE 
 </form></section>
 <section class="panel"><div class="panel-heading"><div><h3>Daftar Siswa</h3><p>Cari nama/NIS/NISN atau saring berdasarkan rombel.</p></div>
 <form class="student-filter-form" method="get"><input name="q" placeholder="Cari siswa..." value="<?= h($q) ?>"><select name="rombel"><option value="">Semua rombel</option><?php foreach($rombels as $r): ?><option value="<?= h($r) ?>" <?= $rombelFilter===$r?'selected':'' ?>><?= h($r) ?></option><?php endforeach; ?></select><button type="submit">Filter</button></form></div>
-<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><?php foreach(['NISN','NIS','Nama','Rombel','L/P','Status','Aksi'] as $heading): ?><th style="padding:12px;border-bottom:1px solid #e8edf4;color:#718096;font-size:12px"><?= h($heading) ?></th><?php endforeach; ?></tr></thead><tbody>
-<?php if(!$siswas): ?><tr><td colspan="7" style="padding:20px;color:#8290a5;text-align:center">Belum ada data siswa.</td></tr><?php endif; ?>
-<?php foreach($siswas as $s): ?><tr><?php foreach(['nisn','nis','nama','rombel','jenis_kelamin','status'] as $col): ?><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h($s[$col]??'-') ?></td><?php endforeach; ?><td style="padding:12px;border-bottom:1px solid #edf1f6;white-space:nowrap"><a href="index.php?edit=<?= (int)$s['id'] ?>" style="color:#4263eb;font-weight:700">Edit</a><form method="post" style="display:inline" onsubmit="return confirm('Hapus data siswa ini?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int)$s['id'] ?>"><button style="margin-left:8px;border:0;background:none;color:#d34b4b;cursor:pointer">Hapus</button></form></td></tr><?php endforeach; ?>
+<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><?php foreach(['Foto','NISN','NIS','Nama','Rombel','L/P','Status','Aksi'] as $heading): ?><th style="padding:12px;border-bottom:1px solid #e8edf4;color:#718096;font-size:12px"><?= h($heading) ?></th><?php endforeach; ?></tr></thead><tbody>
+<?php if(!$siswas): ?><tr><td colspan="8" style="padding:20px;color:#8290a5;text-align:center">Belum ada data siswa.</td></tr><?php endif; ?>
+<?php foreach($siswas as $s): ?><tr><td style="padding:10px;border-bottom:1px solid #edf1f6;min-width:135px"><?php $photoUrl=''; foreach(['jpg','jpeg','png','webp'] as $photoExt){$photoFile=__DIR__.'/../../assets/images/siswa/'.(int)$s['id'].'.'.$photoExt;if(is_file($photoFile)){$photoUrl='../../assets/images/siswa/'.(int)$s['id'].'.'.$photoExt.'?v='.filemtime($photoFile);break;}} ?><div style="display:flex;align-items:center;gap:8px"><img src="<?= h($photoUrl ?: '../../assets/images/siswa/default-avatar.png') ?>" onerror="this.style.display='none'" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;background:#edf2f7"><form method="post" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:4px"><input type="hidden" name="action" value="upload_photo"><input type="hidden" name="id" value="<?= (int)$s['id'] ?>"><input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required style="font-size:10px;max-width:150px"><button type="submit" style="border:0;border-radius:6px;background:#edf1ff;color:#3556cf;padding:4px 7px;font-size:11px;cursor:pointer">Upload</button></form></div></td><?php foreach(['nisn','nis','nama','rombel','jenis_kelamin','status'] as $col): ?><td style="padding:12px;border-bottom:1px solid #edf1f6"><?= h($s[$col]??'-') ?></td><?php endforeach; ?><td style="padding:12px;border-bottom:1px solid #edf1f6;white-space:nowrap"><a href="index.php?edit=<?= (int)$s['id'] ?>" style="color:#4263eb;font-weight:700">Edit</a><form method="post" style="display:inline" onsubmit="return confirm('Hapus data siswa ini?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int)$s['id'] ?>"><button style="margin-left:8px;border:0;background:none;color:#d34b4b;cursor:pointer">Hapus</button></form></td></tr><?php endforeach; ?>
 </tbody></table></div></section>
 </div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
