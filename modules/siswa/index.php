@@ -3,6 +3,69 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 $pageTitle = 'Data Siswa';
 $errors = [];
 $edit = null;
+
+if (($_GET['download_template'] ?? '') === 'siswa') {
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="template_data_siswa.csv"');
+    echo "\xEF\xBB\xBF";
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['nisn','nis','nama','rombel','jenis_kelamin','status']);
+    fputcsv($out, ['0123456789','1001','Nama Siswa Contoh','1A','L','aktif']);
+    fclose($out); exit;
+}
+$importResult = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'import_csv') {
+    if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+        $errors[] = 'Pilih file CSV yang valid untuk diunggah.';
+    } elseif ($_FILES['csv_file']['size'] > 5 * 1024 * 1024) {
+        $errors[] = 'Ukuran file maksimal 5 MB.';
+    } else {
+        $fh = fopen($_FILES['csv_file']['tmp_name'], 'r');
+        if (!$fh) {
+            $errors[] = 'File CSV tidak dapat dibaca.';
+        } else {
+            $first = fgets($fh);
+            $delimiter = (substr_count((string)$first, ';') > substr_count((string)$first, ',')) ? ';' : ',';
+            rewind($fh);
+            $header = fgetcsv($fh, 0, $delimiter);
+            $header = array_map(static fn($v) => strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string)$v))), $header ?: []);
+            $required = ['nisn','nis','nama','rombel','jenis_kelamin','status'];
+            if (array_diff($required, $header)) {
+                $errors[] = 'Header CSV harus memuat kolom: nisn, nis, nama, rombel, jenis_kelamin, status. Unduh template yang disediakan.';
+            } else {
+                $map = array_flip($header); $ok = 0; $skip = 0;
+                try {
+                    $pdo->beginTransaction();
+                    $findNisn = $pdo->prepare('SELECT id FROM siswa WHERE nisn=? AND ?<>"" LIMIT 1');
+                    $findNis = $pdo->prepare('SELECT id FROM siswa WHERE nis=? AND ?<>"" LIMIT 1');
+                    $update = $pdo->prepare('UPDATE siswa SET nisn=?,nis=?,nama=?,rombel=?,jenis_kelamin=?,status=? WHERE id=?');
+                    $insertStmt = $pdo->prepare('INSERT INTO siswa (nisn,nis,nama,rombel,jenis_kelamin,status) VALUES (?,?,?,?,?,?)');
+                    while (($row = fgetcsv($fh, 0, $delimiter)) !== false) {
+                        if (count(array_filter($row, static fn($v) => trim((string)$v) !== '')) === 0) continue;
+                        $get = static function($key) use ($row,$map) { return trim((string)($row[$map[$key]] ?? '')); };
+                        $nisn=$get('nisn'); $nis=$get('nis'); $nama=$get('nama'); $rombel=$get('rombel');
+                        $jk=strtoupper($get('jenis_kelamin')); $jk=in_array($jk,['L','P'],true)?$jk:null;
+                        $status=strtolower($get('status')) === 'nonaktif' ? 'nonaktif' : 'aktif';
+                        if ($nama === '') { $skip++; continue; }
+                        $existing=false;
+                        if ($nisn !== '') { $findNisn->execute([$nisn,$nisn]); $existing=$findNisn->fetchColumn(); }
+                        if (!$existing && $nis !== '') { $findNis->execute([$nis,$nis]); $existing=$findNis->fetchColumn(); }
+                        if ($existing) $update->execute([$nisn ?: null,$nis ?: null,$nama,$rombel ?: null,$jk,$status,(int)$existing]);
+                        else $insertStmt->execute([$nisn ?: null,$nis ?: null,$nama,$rombel ?: null,$jk,$status]);
+                        $ok++;
+                    }
+                    $pdo->commit();
+                    $importResult = "Impor selesai: {$ok} baris diproses, {$skip} baris dilewati karena nama kosong.";
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    $errors[] = 'Impor dibatalkan karena kesalahan database. Periksa format CSV dan struktur tabel.';
+                }
+            }
+            fclose($fh);
+        }
+    }
+}
+
 if (!$pdo) {
     http_response_code(500);
     require __DIR__ . '/../../includes/header.php';
@@ -59,6 +122,10 @@ require __DIR__ . '/../../includes/header.php';
 <?php if(isset($_GET['saved'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil disimpan.</div><?php endif; ?>
 <?php if(isset($_GET['deleted'])): ?><div class="notice" style="background:#e8f8f1;color:#13845e">Data siswa berhasil dihapus.</div><?php endif; ?>
 <?php foreach($errors as $error): ?><div class="notice warning"><?= h($error) ?></div><?php endforeach; ?>
+<?php if ($importResult): ?><div class="notice" style="background:#e8f8f1;color:#13845e"><?= h($importResult) ?></div><?php endif; ?>
+<section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3>Upload Data Siswa Massal</h3><p>CSV kolom nisn, nis, nama, rombel, jenis_kelamin, status. Maksimal 5 MB; NISN/NIS yang sudah ada diperbarui.</p></div></div>
+<p style="margin:0 0 12px"><a href="index.php?download_template=siswa" style="color:#4263eb;font-weight:700">Unduh Template CSV Siswa</a></p>
+<form method="post" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="hidden" name="action" value="import_csv"><input type="file" name="csv_file" accept=".csv,text/csv" required><button type="submit" onclick="return confirm('Proses upload data siswa dari CSV?')" style="padding:11px 16px;background:#0f8b68;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer">Upload Data Massal</button></form></section>
 <section class="panel" style="margin-bottom:20px"><div class="panel-heading"><div><h3><?= $edit?'Edit Siswa':'Tambah Siswa' ?></h3><p>Nama wajib diisi. NIS, NISN, rombel, dan jenis kelamin dapat dilengkapi.</p></div></div>
 <form method="post" action="index.php" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
 <input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int)($edit['id']??0) ?>">
