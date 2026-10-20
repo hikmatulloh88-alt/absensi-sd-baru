@@ -2,19 +2,10 @@
 require_once __DIR__ . '/../../includes/bootstrap.php';
 if (($_SESSION['role'] ?? '') !== 'admin') { http_response_code(403); exit('Akses SPJ hanya untuk admin.'); }
 $pageTitle='SPJ BOSP'; $errors=[]; $ok='';
-try {
-$pdo->exec("CREATE TABLE IF NOT EXISTS spj_transaksi (
-id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-sumber_dana ENUM('BOSP','BOS_KINERJA') NOT NULL,
-tanggal DATE NOT NULL, nomor_bukti VARCHAR(80) NOT NULL DEFAULT '',
-kegiatan VARCHAR(180) NOT NULL, uraian VARCHAR(255) NOT NULL,
-penyedia VARCHAR(180) NULL, nilai_bruto DECIMAL(15,2) NOT NULL DEFAULT 0,
-pajak DECIMAL(15,2) NOT NULL DEFAULT 0, bukti_file VARCHAR(255) NULL,
-created_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-INDEX idx_spj_sumber_tanggal(sumber_dana,tanggal), INDEX idx_spj_nomor_bukti(nomor_bukti)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch(Throwable $e){$errors[]='Tabel SPJ belum dapat disiapkan. Periksa izin database.';}
+$tableReady=false;
+try { $tableReady=(bool)$pdo->query("SHOW TABLES LIKE 'spj_transaksi'")->fetchColumn(); }
+catch(Throwable $e) { $tableReady=false; }
+if(!$tableReady) { $errors[]='Tabel SPJ belum tersedia. Jalankan database/spj_transaksi.sql satu kali.'; }
 $uploadDir=__DIR__.'/bukti'; if(!is_dir($uploadDir)) @mkdir($uploadDir,0750,true);
 if($_SERVER['REQUEST_METHOD']==='POST'&&!$errors){
 if(!hash_equals((string)($_SESSION['spj_csrf']??''),(string)($_POST['csrf']??''))) $errors[]='Sesi formulir berakhir. Muat ulang halaman.';
@@ -54,6 +45,6 @@ require __DIR__.'/../../includes/header.php';
 <label class="spj-wide">Uraian belanja<textarea required name="uraian" maxlength="255"></textarea></label><label>Penyedia<input name="penyedia" maxlength="180"></label><label>Nilai bruto (Rp)<input required type="number" min="0" step=".01" name="nilai_bruto" value="0"></label><label>Pajak (Rp)<input required type="number" min="0" step=".01" name="pajak" value="0"></label><label>Bukti PDF/JPG/PNG maks 8 MB<input type="file" name="bukti" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></label><div class="spj-wide"><button class="spj-btn">Simpan transaksi</button></div></form></section>
 <section class="spj-panel"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h3>Daftar transaksi BOSP</h3><p class="spj-note">Maksimal 500 baris.</p></div><button class="spj-btn spj-no-print" onclick="window.print()" type="button">Cetak rekap</button></div>
 <form method="get" class="spj-filters spj-no-print"><input type="date" name="awal" aria-label="Tanggal awal" value="<?=h($filters['awal'])?>"><input type="date" name="akhir" aria-label="Tanggal akhir" value="<?=h($filters['akhir'])?>"><input name="cari" placeholder="Cari kegiatan/bukti/penyedia" value="<?=h($filters['cari'])?>"><button class="spj-btn">Filter</button><a href="index.php">Reset</a></form><div class="spj-table-wrap"><table class="spj-table"><thead><tr><th>Tanggal</th><th>No. bukti</th><th>Kegiatan</th><th>Uraian</th><th>Penyedia</th><th>Bruto</th><th>Pajak</th><th>Bukti</th></tr></thead><tbody>
-<?php if(!$rows):?><tr><td colspan="8">Belum ada transaksi yang sesuai.</td></tr><?php else:foreach($rows as $r):?><tr><td><?=h($r['tanggal'])?></td><td><?=h($r['nomor_bukti'])?></td><td><?=h($r['kegiatan'])?></td><td><?=h($r['uraian'])?></td><td><?=h($r['penyedia'])?></td><td>Rp <?=number_format((float)$r['nilai_bruto'],0,',','.')?></td><td>Rp <?=number_format((float)$r['pajak'],0,',','.')?></td><td><?php if($r['bukti_file']):?><a href="<?=h($r['bukti_file'])?>" target="_blank" rel="noopener">Lihat bukti</a><?php else:?>—<?php endif;?></td></tr><?php endforeach;endif;?>
+<?php if(!$rows):?><tr><td colspan="8">Belum ada transaksi yang sesuai.</td></tr><?php else:foreach($rows as $r):?><tr><td><?=h($r['tanggal'])?></td><td><?=h($r['nomor_bukti'])?></td><td><?=h($r['kegiatan'])?></td><td><?=h($r['uraian'])?></td><td><?=h($r['penyedia'])?></td><td>Rp <?=number_format((float)$r['nilai_bruto'],0,',','.')?></td><td>Rp <?=number_format((float)$r['pajak'],0,',','.')?></td><td><?php if($r['bukti_file']):?><a href="download.php?id=<?= (int)$r['id'] ?>">Unduh bukti</a><?php else:?>—<?php endif;?></td></tr><?php endforeach;endif;?>
 </tbody></table></div></section><p class="spj-note">Modul internal pendamping, bukan pengganti ARKAS atau dokumen resmi pemerintah.</p></div>
 <?php require __DIR__.'/../../includes/footer.php'; ?>
