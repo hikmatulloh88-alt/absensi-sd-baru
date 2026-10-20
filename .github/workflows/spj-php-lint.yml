@@ -6,6 +6,7 @@ on:
     paths:
       - 'modules/spj_bosp/**'
       - 'modules/spj_bos_kinerja/**'
+      - 'tests/**'
       - '.github/workflows/spj-php-lint.yml'
   push:
     branches: [feat/spj-bosp-kinerja]
@@ -25,7 +26,7 @@ jobs:
         with:
           php-version: '8.2'
           tools: none
-      - name: Run BKU parsing logic tests
+      - name: Run BKU and RKAS parsing logic tests
         run: php tests/spj_bku_logic_test.php
       - name: Check SPJ PHP syntax
         shell: bash
