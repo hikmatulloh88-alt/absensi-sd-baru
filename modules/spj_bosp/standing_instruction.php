@@ -20,7 +20,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    if(!is_array($rawRecipients))$rawRecipients=[];
    foreach(array_slice($rawRecipients,0,100) as $row){
     if(!is_array($row))continue;
-    $amountRaw=si_s($row['amount']??'',40);$amountClean=preg_replace('/[^0-9]/','',$amountRaw);$amountValid=($amountRaw===''||($amountClean!==''&&strlen($amountClean)<=15));
+    $amountRaw=si_s($row['amount']??'',40);$amountClean=preg_replace('/[Rp\\s.,]/i','',$amountRaw);$amountValid=($amountRaw===''||(preg_match('/^[0-9]{1,15}$/',$amountClean)===1&&preg_match('/^[0-9Rp\\s.,]+$/i',$amountRaw)===1));
      $rec=['account'=>si_s($row['account']??'',100),'name'=>si_s($row['name']??'',180),'bank'=>si_s($row['bank']??'',100),'amount'=>$amountRaw===''?'':($amountValid?$amountClean:'invalid'),'note'=>si_s($row['note']??'',255)];
     if($rec['account']===''&&$rec['name']===''&&$rec['amount']===''&&$rec['note']==='')continue;
     if($rec['name']===''||$rec['account']===''||$rec['amount']===''||!is_numeric($rec['amount'])||(float)$rec['amount']<0||!$amountValid){$errors[]='Setiap penerima harus memiliki nama, nomor rekening, dan nominal rupiah berupa angka yang valid.';break;}
