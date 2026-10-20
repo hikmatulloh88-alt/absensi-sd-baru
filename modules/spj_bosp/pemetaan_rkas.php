@@ -14,7 +14,7 @@ if($ready&&$_SERVER['REQUEST_METHOD']==='POST'){
  if(!hash_equals((string)$_SESSION['spj_csrf'],(string)($_POST['csrf']??'')))$errors[]='Sesi formulir berakhir. Muat ulang halaman.';
  else{
   $year=(int)($_POST['tahun']??$year);$source=(string)($_POST['sumber']??$source);
-  $tid=filter_var($_POST['transaksi_id']??null,FILTER_VALIDATE_INT);$kid=filter_var($_POST['kegiatan_id']??null,FILTER_VALIDATE_INT);
+  $tid=filter_var($_POST['transaksi_id']??null,FILTER_VALIDATE_INT);$kidRaw=trim((string)($_POST['kegiatan_id']??''));$kid=$kidRaw===''?0:filter_var($kidRaw,FILTER_VALIDATE_INT);
   if($year<2000||$year>2100||!in_array($source,['BOSP','BOS_KINERJA'],true)||!$tid||$kid===false)$errors[]='Data pemetaan tidak valid.';
   else try{
    $pdo->beginTransaction();
