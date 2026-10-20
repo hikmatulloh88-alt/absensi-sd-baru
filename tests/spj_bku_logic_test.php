@@ -26,3 +26,20 @@ if (bku_norm("\xEF\xBB\xBF Nomor Bukti") !== 'nomorbukti') {
     exit(1);
 }
 echo 'BKU logic tests passed: ' . count($cases) . " money cases + header normalization." . PHP_EOL;
+
+$classificationCases = [
+    ['Saldo awal bulan', '', 0, 1000, 'SALDO'],
+    ['Terima PPh Pasal 21', '', 0, 500, 'PENERIMAAN_PAJAK'],
+    ['Setor PPN', '', 500, 0, 'SETOR_PAJAK'],
+    ['Pembelian alat tulis', '', 250, 0, 'PENGELUARAN'],
+    ['Transfer dana masuk', '', 0, 2000, 'PENERIMAAN'],
+    ['Catatan administrasi', '', 0, 0, 'LAINNYA'],
+];
+foreach ($classificationCases as [$description, $activity, $out, $in, $expected]) {
+    $actual = bku_classify($description, $activity, (float) $out, (float) $in);
+    if ($actual !== $expected) {
+        fwrite(STDERR, 'FAIL bku_classify(' . $description . '): got ' . $actual . ', expected ' . $expected . PHP_EOL);
+        exit(1);
+    }
+}
+echo 'BKU classification tests passed: ' . count($classificationCases) . ' cases.' . PHP_EOL;
