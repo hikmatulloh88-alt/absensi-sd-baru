@@ -152,3 +152,26 @@ foreach ($siCases as [$input, $expected]) {
     }
 }
 echo 'SI terbilang tests passed: ' . count($siCases) . ' cases.' . PHP_EOL;
+
+$siAmountCases = [
+    ['1900000', '1900000'],
+    ['1.900.000', '1900000'],
+    ['1,900,000', '1900000'],
+    ['Rp 1.900.000', '1900000'],
+    ['0', '0'],
+    ['', ''],
+    ['1,,900,000', null],
+    ['1.90.000', null],
+    ['1abc2', null],
+    ['-100', null],
+    ['1.900.000,50', null],
+    ['9999999999999999', null],
+];
+foreach ($siAmountCases as [$input, $expected]) {
+    $actual = si_parse_amount($input);
+    if ($actual !== $expected) {
+        fwrite(STDERR, 'FAIL si_parse_amount(' . var_export($input, true) . '): got ' . var_export($actual, true) . ', expected ' . var_export($expected, true) . PHP_EOL);
+        exit(1);
+    }
+}
+echo 'SI amount validation tests passed: ' . count($siAmountCases) . ' cases.' . PHP_EOL;
