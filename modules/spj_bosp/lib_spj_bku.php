@@ -63,3 +63,46 @@ function bku_balance_delta(float $previous, float $incoming, float $outgoing, fl
 {
     return round($reported - ($previous + $incoming - $outgoing), 2);
 }
+
+
+/**
+ * Reconcile reported balances across rows with optional blank saldo cells.
+ * Movements between two reported balances are accumulated before comparison.
+ *
+ * @return array{0: array, 1: int, 2: int} rows, comparisons, discrepancies
+ */
+function bku_reconcile_balances(array $rows): array
+{
+    $anchor = null;
+    $movement = 0.0;
+    $checks = 0;
+    $warnings = 0;
+
+    foreach ($rows as &$row) {
+        $incoming = (float) ($row['masuk'] ?? 0);
+        $outgoing = (float) ($row['keluar'] ?? 0);
+        $reported = $row['saldo'] ?? null;
+
+        if ($reported === null) {
+            if ($anchor !== null && ($row['jenis'] ?? '') !== 'SALDO') {
+                $movement += $incoming - $outgoing;
+            }
+            continue;
+        }
+
+        $reported = (float) $reported;
+        if ($anchor !== null) {
+            $delta = round($reported - ($anchor + $movement), 2);
+            $row['selisih_saldo'] = $delta;
+            $checks++;
+            if (abs($delta) > 0.01) $warnings++;
+        }
+
+        // Every reported saldo becomes the next reconciliation anchor.
+        $anchor = $reported;
+        $movement = 0.0;
+    }
+    unset($row);
+
+    return [$rows, $checks, $warnings];
+}
