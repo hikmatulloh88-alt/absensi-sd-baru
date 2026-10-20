@@ -117,3 +117,15 @@ if ($checks !== 1 || $warnings !== 1 || abs((float)$reconciled[3]['selisih_saldo
     exit(1);
 }
 echo "BKU reconciliation tests passed: blank-saldo movement accumulation + discrepancy detection.\n";
+
+$reconcileRows = [
+    ['jenis'=>'SALDO','masuk'=>0.0,'keluar'=>0.0,'saldo'=>1000.0,'selisih_saldo'=>null],
+    ['jenis'=>'SALDO','masuk'=>0.0,'keluar'=>0.0,'saldo'=>1000.0,'selisih_saldo'=>null],
+    ['jenis'=>'PENGELUARAN','masuk'=>0.0,'keluar'=>100.0,'saldo'=>900.0,'selisih_saldo'=>null],
+];
+[$reconciled, $checks, $warnings] = bku_reconcile_balances($reconcileRows);
+if ($checks !== 1 || $warnings !== 0 || abs((float)$reconciled[1]['selisih_saldo'] ?? 0.0) > 0.001 || abs((float)$reconciled[2]['selisih_saldo']) > 0.001) {
+    fwrite(STDERR, "FAIL opening saldo rows must reset the reconciliation anchor without a false warning.\n");
+    exit(1);
+}
+echo "BKU opening-saldo anchor test passed.\n";
