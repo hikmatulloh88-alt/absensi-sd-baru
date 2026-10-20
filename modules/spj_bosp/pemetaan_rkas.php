@@ -15,15 +15,19 @@ if($ready&&$_SERVER['REQUEST_METHOD']==='POST'){
  else{
   $year=(int)($_POST['tahun']??$year);$source=(string)($_POST['sumber']??$source);
   $tid=filter_var($_POST['transaksi_id']??null,FILTER_VALIDATE_INT);$kid=filter_var($_POST['kegiatan_id']??null,FILTER_VALIDATE_INT);
-  if($year<2000||$year>2100||!in_array($source,['BOSP','BOS_KINERJA'],true)||!$tid||!$kid)$errors[]='Data pemetaan tidak valid.';
+  if($year<2000||$year>2100||!in_array($source,['BOSP','BOS_KINERJA'],true)||!$tid||$kid===false)$errors[]='Data pemetaan tidak valid.';
   else try{
    $pdo->beginTransaction();
    $q=$pdo->prepare("SELECT id FROM spj_transaksi WHERE id=? AND sumber_dana=? AND YEAR(tanggal)=? FOR UPDATE");$q->execute([$tid,$source,$year]);$tx=$q->fetchColumn();
    $q=$pdo->prepare("SELECT k.id FROM spj_rkas_kegiatan k JOIN spj_rkas_import i ON i.id=k.import_id WHERE k.id=? AND i.tahun_anggaran=? AND i.sumber_dana=? AND i.status='aktif' FOR UPDATE");$q->execute([$kid,$year,$source]);$act=$q->fetchColumn();
-   if(!$tx||!$act)throw new RuntimeException('Transaksi dan kegiatan harus sesuai tahun/sumber dana yang dipilih.');
-   $q=$pdo->prepare("INSERT INTO spj_transaksi_rkas(transaksi_id,kegiatan_id,catatan,mapped_by) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE kegiatan_id=VALUES(kegiatan_id),catatan=VALUES(catatan),mapped_by=VALUES(mapped_by),mapped_at=CURRENT_TIMESTAMP");
-   $q->execute([$tid,$kid,trim((string)($_POST['catatan']??''))?:null,$_SESSION['akun_id']??null]);
-   $pdo->commit();$ok='Pemetaan transaksi tersimpan.';
+   if(!$tx)throw new RuntimeException('Transaksi tidak sesuai tahun/sumber dana yang dipilih.');
+   if(!$kid){$q=$pdo->prepare("DELETE FROM spj_transaksi_rkas WHERE transaksi_id=?");$q->execute([$tid]);$pdo->commit();$ok='Pemetaan transaksi dihapus; transaksi kembali berstatus belum dipetakan.';}
+   else{
+    if(!$act)throw new RuntimeException('Kegiatan RKAS harus sesuai tahun/sumber dana yang dipilih.');
+    $q=$pdo->prepare("INSERT INTO spj_transaksi_rkas(transaksi_id,kegiatan_id,catatan,mapped_by) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE kegiatan_id=VALUES(kegiatan_id),catatan=VALUES(catatan),mapped_by=VALUES(mapped_by),mapped_at=CURRENT_TIMESTAMP");
+    $q->execute([$tid,$kid,trim((string)($_POST['catatan']??''))?:null,$_SESSION['akun_id']??null]);
+    $pdo->commit();$ok='Pemetaan transaksi tersimpan.';
+   }
   }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();$errors[]=$e instanceof RuntimeException?$e->getMessage():'Pemetaan gagal disimpan.';}
  }
 }
@@ -48,5 +52,5 @@ require __DIR__.'/../../includes/header.php';
 </tbody></table></div><p class="muted">Realisasi hanya mencakup transaksi yang sudah dipetakan. Sisa indikatif belum merupakan saldo resmi dan belum memperhitungkan rencana bulanan.</p></div>
 <div class="map-panel"><h2>Pemetaan transaksi tahun <?= h($year) ?></h2><div class="map-table-wrap"><table class="map-table"><thead><tr><th>Tanggal / bukti</th><th>Uraian transaksi</th><th>Nominal bruto</th><th>Pilih kegiatan RKAS</th></tr></thead><tbody>
 <?php if(!$transactions): ?><tr><td colspan="4">Belum ada transaksi untuk tahun dan sumber dana ini.</td></tr><?php endif; ?>
-<?php foreach($transactions as $t): ?><tr><td><?= h($t['tanggal']) ?><br><?= h($t['nomor_bukti']?:'-') ?></td><td><strong><?= h($t['uraian']) ?></strong><br><span class="muted"><?= h($t['kegiatan']) ?></span></td><td>Rp <?= number_format((float)$t['nilai_bruto'],0,',','.') ?><br><span class="muted">Pajak: Rp <?= number_format((float)$t['pajak'],0,',','.') ?></span></td><td><?php if($activities): ?><form method="post"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="tahun" value="<?= h($year) ?>"><input type="hidden" name="sumber" value="<?= h($source) ?>"><input type="hidden" name="transaksi_id" value="<?= (int)$t['id'] ?>"><select name="kegiatan_id" required style="width:100%;padding:8px"><?php foreach($activities as $a): ?><option value="<?= (int)$a['id'] ?>" <?= ((int)($t['kegiatan_id']??0)===(int)$a['id'])?'selected':'' ?>><?= h(($a['kode_kegiatan']?:'-').' · '.$a['uraian']) ?></option><?php endforeach; ?></select><input name="catatan" placeholder="Catatan opsional" style="width:100%;padding:8px;margin-top:6px"><button class="map-btn" style="margin-top:6px" type="submit">Simpan pemetaan</button></form><?php else: ?>Impor RKAS aktif terlebih dahulu.<?php endif; ?></td></tr><?php endforeach; ?>
+<?php foreach($transactions as $t): ?><tr><td><?= h($t['tanggal']) ?><br><?= h($t['nomor_bukti']?:'-') ?></td><td><strong><?= h($t['uraian']) ?></strong><br><span class="muted"><?= h($t['kegiatan']) ?></span></td><td>Rp <?= number_format((float)$t['nilai_bruto'],0,',','.') ?><br><span class="muted">Pajak: Rp <?= number_format((float)$t['pajak'],0,',','.') ?></span></td><td><?php if($activities): ?><form method="post"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="tahun" value="<?= h($year) ?>"><input type="hidden" name="sumber" value="<?= h($source) ?>"><input type="hidden" name="transaksi_id" value="<?= (int)$t['id'] ?>"><select name="kegiatan_id" style="width:100%;padding:8px"><option value="">— Belum dipetakan / hapus pemetaan —</option><?php foreach($activities as $a): ?><option value="<?= (int)$a['id'] ?>" <?= ((int)($t['kegiatan_id']??0)===(int)$a['id'])?'selected':'' ?>><?= h(($a['kode_kegiatan']?:'-').' · '.$a['uraian']) ?></option><?php endforeach; ?></select><input name="catatan" placeholder="Catatan opsional" style="width:100%;padding:8px;margin-top:6px"><button class="map-btn" style="margin-top:6px" type="submit">Simpan pemetaan</button></form><?php else: ?>Impor RKAS aktif terlebih dahulu.<?php endif; ?></td></tr><?php endforeach; ?>
 </tbody></table></div></div></div></main><?php require __DIR__.'/../../includes/footer.php'; ?>
