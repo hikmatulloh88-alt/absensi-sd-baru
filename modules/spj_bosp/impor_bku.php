@@ -54,7 +54,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
        if(preg_match('/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/',$dateRaw,$m))$date=sprintf('%04d-%02d-%02d',(int)$m[3],(int)$m[2],(int)$m[1]);
        elseif(preg_match('/^\d{4}-\d{2}-\d{2}$/',$dateRaw))$date=$dateRaw;
        $desc=trim((string)($data[$col['uraian']]??''));$out=bku_money($data[$col['keluar']]??'');$in=isset($col['masuk'])?bku_money($data[$col['masuk']]??''):0.0;
-       if(!$date||!checkdate((int)substr($date,5,2),(int)substr($date,8,2),(int)substr($date,0,4))||$desc===''||$out===null||$in===null){$bad[]='Baris '.$line.': tanggal, uraian, atau nominal tidak valid.';continue;}
+       if(!$date||!checkdate((int)substr($date,5,2),(int)substr($date,8,2),(int)substr($date,0,4))||(int)substr($date,0,4)!==$year||$desc===''||$out===null||$in===null){$bad[]='Baris '.$line.': tahun tanggal harus sama dengan tahun anggaran terpilih, dan tanggal/uraian/nominal harus valid.';continue;}
        $voucher=trim((string)($data[$col['nomor']]??''));$activity=trim((string)($data[$col['kegiatan']]??''));$low=strtolower($desc.' '.$activity);
        $kind='PENGELUARAN';
        if(preg_match('/saldo awal|saldo sebelumnya|saldo akhir|saldo dibawa|saldo kas awal/i',$low))$kind='SALDO';
