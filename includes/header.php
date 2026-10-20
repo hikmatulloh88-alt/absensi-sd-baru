@@ -22,6 +22,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
   <nav class="nav-list">
     <?php if (($_SESSION['role'] ?? '') === 'siswa'): ?>
     <a class="nav-link<?= navActive('/modules/surat_siswa/') ?>" href="<?= h($basePath) ?>/modules/surat_siswa/index.php"><span>📝</span>Pengajuan Izin / Sakit</a>
+    <a class="nav-link<?= navActive('/modules/akun_saya/profil.php') ?>" href="<?= h($basePath) ?>/modules/akun_saya/profil.php"><span>👤</span>Edit Profil</a>
     <?php else: ?>
     <a class="nav-link<?= (str_ends_with($uri, '/index.php') && !str_contains($uri, '/modules/')) ? ' active' : '' ?>" href="<?= h($basePath) ?>/index.php"><span>▦</span>Dashboard</a>
     <div class="nav-group<?= navActive('/modules/absensi/') ?>">
