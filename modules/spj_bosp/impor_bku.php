@@ -58,22 +58,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
       if($bad)$errors=array_merge($errors,array_slice($bad,0,10));
       if(!$errors&&!$rows)$errors[]='Tidak ada baris BKU yang valid.';
       if(!$errors){
-       // Reconcile running balance only when the CSV provides a usable saldo column.
-       $previousBalance=null;$balanceWarnings=0;$balanceChecks=0;
-       foreach($rows as &$balanceRow){
-        if($balanceRow['saldo']===null)continue;
-        if($balanceRow['jenis']==='SALDO'){
-         $previousBalance=(float)$balanceRow['saldo'];
-         continue;
-        }
-        if($previousBalance!==null){
-         $delta=bku_balance_delta($previousBalance,(float)$balanceRow['masuk'],(float)$balanceRow['keluar'],(float)$balanceRow['saldo']);
-         $balanceRow['selisih_saldo']=$delta;
-         $balanceChecks++;
-         if(abs($delta)>0.01)$balanceWarnings++;
-        }
-        $previousBalance=(float)$balanceRow['saldo'];
-       }unset($balanceRow);
+       // Reconcile between reported balances, accumulating movements across rows
+       // whose saldo cell is blank instead of comparing against a stale balance.
+       [$rows,$balanceChecks,$balanceWarnings]=bku_reconcile_balances($rows);
        $q=$pdo->prepare("SELECT id FROM spj_transaksi WHERE sumber_dana=? AND tanggal=? AND nomor_bukti=? AND nilai_bruto=? AND uraian=? LIMIT 1");
        $seenInFile=[];
        foreach($rows as &$row){
