@@ -63,6 +63,7 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
           $pdo->beginTransaction();
           $find = $pdo->prepare("SELECT k.id,k.pagu,i.tahun_anggaran,i.sumber_dana FROM spj_rkas_kegiatan k JOIN spj_rkas_import i ON i.id=k.import_id WHERE k.id=? AND i.tahun_anggaran=? AND i.sumber_dana=? AND i.status='aktif' FOR UPDATE");
           $planned = $pdo->prepare("SELECT COALESCE(SUM(nominal_rencana),0) FROM spj_rencana_bulanan WHERE kegiatan_id=? AND status='aktif' AND NOT (tahun_anggaran=? AND bulan=? AND sumber_dana=?)");
+          $actual = $pdo->prepare("SELECT COALESCE(SUM(t.nilai_bruto),0) FROM spj_transaksi_rkas m JOIN spj_transaksi t ON t.id=m.transaksi_id WHERE m.kegiatan_id=? AND t.sumber_dana=? AND YEAR(t.tanggal)=?");
           $upsert = $pdo->prepare("INSERT INTO spj_rencana_bulanan (tahun_anggaran,bulan,sumber_dana,kegiatan_id,nominal_rencana,status,created_by,updated_by) VALUES (?,?,?,?,?,'aktif',?,?) ON DUPLICATE KEY UPDATE nominal_rencana=VALUES(nominal_rencana),status='aktif',updated_by=VALUES(updated_by)");
           $actor = isset($_SESSION['akun_id']) ? (int)$_SESSION['akun_id'] : null;
           foreach ($ids as $i => $rawId) {
@@ -71,7 +72,8 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $find->execute([$id,$year,$source]); $activity = $find->fetch();
             if (!$activity) { $errors[] = 'Kegiatan tidak ditemukan pada pagu aktif tahun dan sumber dana terpilih.'; break; }
             $planned->execute([$id,$year,$month,$source]); $other = (float)$planned->fetchColumn();
-            if ($other + (float)$amount > (float)$activity['pagu']) { $errors[] = 'Rencana melebihi pagu tahunan untuk kegiatan: '.$id.'. Kurangi nominal sebelum menyimpan.'; break; }
+            $actual->execute([$id,$source,$year]); $realized = (float)$actual->fetchColumn();
+            if ($realized + $other + (float)$amount > (float)$activity['pagu']) { $errors[] = 'Realisasi terpetakan ditambah rencana aktif melebihi pagu tahunan untuk kegiatan: '.$id.'. Tinjau transaksi dan rencana sebelum menyimpan.'; break; }
             $upsert->execute([$year,$month,$source,$id,$amount,$actor,$actor]);
           }
           if ($errors) $pdo->rollBack(); else { $pdo->commit(); $ok = 'Rencana bulan ini tersimpan. Ini belum mengurangi pagu resmi; realisasi SPJ belum otomatis dipetakan pada tahap ini.'; }
@@ -80,7 +82,7 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } else $errors[] = 'Aksi tidak dikenal.';
   }
 }
-$activities = []; $plannedById = []; $yearPlans = [];
+$activities = []; $plannedById = []; $yearPlans = []; $actualById = [];
 if ($ready) {
   try {
     $q = $pdo->prepare("SELECT k.id,k.kode_kegiatan,k.kode_rekening,k.uraian,k.jenis_belanja,k.pagu FROM spj_rkas_kegiatan k JOIN spj_rkas_import i ON i.id=k.import_id WHERE i.tahun_anggaran=? AND i.sumber_dana=? AND i.status='aktif' ORDER BY k.id");
@@ -89,6 +91,8 @@ if ($ready) {
     $q->execute([$year,$month,$source]); foreach ($q->fetchAll() as $p) $plannedById[(int)$p['kegiatan_id']] = (float)$p['nominal_rencana'];
     $q = $pdo->prepare("SELECT kegiatan_id,COALESCE(SUM(nominal_rencana),0) total FROM spj_rencana_bulanan WHERE tahun_anggaran=? AND sumber_dana=? AND status='aktif' GROUP BY kegiatan_id");
     $q->execute([$year,$source]); foreach ($q->fetchAll() as $p) $yearPlans[(int)$p['kegiatan_id']] = (float)$p['total'];
+    $q = $pdo->prepare("SELECT m.kegiatan_id,COALESCE(SUM(t.nilai_bruto),0) total FROM spj_transaksi_rkas m JOIN spj_transaksi t ON t.id=m.transaksi_id WHERE t.sumber_dana=? AND YEAR(t.tanggal)=? GROUP BY m.kegiatan_id");
+    $q->execute([$source,$year]); foreach ($q->fetchAll() as $p) $actualById[(int)$p['kegiatan_id']] = (float)$p['total'];
   } catch (Throwable $e) { $errors[] = 'Data anggaran gagal dibaca. Pastikan migrasi database telah dijalankan.'; }
 }
 require __DIR__ . '/../../includes/header.php';
@@ -117,12 +121,12 @@ require __DIR__ . '/../../includes/header.php';
 <div class="spj-field" style="grid-column:1/-1"><label>Uraian kegiatan</label><input name="uraian" maxlength="500" required placeholder="Nama kegiatan sesuai RKAS"></div>
 </div><div class="spj-actions"><button class="spj-btn" type="submit">Simpan kegiatan</button></div></form></div>
 <div class="spj-panel"><h2 style="margin-top:0">Rencana belanja · <?= h(date('F',mktime(0,0,0,$month,1))) ?> <?= h($year) ?></h2>
-<p class="spj-muted">Masukkan nominal rencana untuk setiap kegiatan. Validasi membatasi total rencana aktif sepanjang tahun agar tidak melebihi pagu kegiatan. Realisasi transaksi belum terhubung otomatis, jadi angka ini belum merupakan sisa pagu setelah belanja.</p>
+<p class="spj-muted">Masukkan nominal rencana untuk setiap kegiatan. Validasi menghitung realisasi SPJ yang sudah dipetakan ditambah seluruh rencana aktif. Transaksi yang belum dipetakan tidak masuk perhitungan, sehingga cocokkan seluruh transaksi sebelum memakai angka ini untuk keputusan resmi.</p>
 <?php if (!$activities): ?><p>Belum ada kegiatan pagu untuk pilihan ini. Tambahkan kegiatan di atas terlebih dahulu.</p><?php else: ?>
 <form method="post"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="save_plan"><input type="hidden" name="tahun" value="<?= h($year) ?>"><input type="hidden" name="bulan" value="<?= h($month) ?>"><input type="hidden" name="sumber" value="<?= h($source) ?>">
-<div class="spj-table-wrap"><table class="spj-table"><thead><tr><th>Kode</th><th>Kegiatan / Rekening</th><th class="spj-num">Pagu tahunan</th><th class="spj-num">Rencana aktif setahun</th><th class="spj-num">Rencana bulan ini (Rp)</th></tr></thead><tbody>
-<?php foreach ($activities as $a): $id=(int)$a['id']; $current=$plannedById[$id]??0; ?>
-<tr><td><?= h($a['kode_kegiatan'] ?: '-') ?></td><td><strong><?= h($a['uraian']) ?></strong><br><span class="spj-muted"><?= h($a['kode_rekening'] ?: 'Tanpa kode rekening') ?> · <?= h($a['jenis_belanja']) ?></span></td><td class="spj-num">Rp <?= number_format((float)$a['pagu'],0,',','.') ?></td><td class="spj-num">Rp <?= number_format($yearPlans[$id]??0,0,',','.') ?></td><td><input aria-label="Rencana <?= h($a['uraian']) ?>" style="width:155px;max-width:100%;padding:8px;border:1px solid var(--border,#d1d5db);border-radius:7px" type="number" min="0" step="0.01" name="nominal[]" value="<?= h(number_format($current,2,'.','')) ?>"><input type="hidden" name="kegiatan_id[]" value="<?= $id ?>"></td></tr>
+<div class="spj-table-wrap"><table class="spj-table"><thead><tr><th>Kode</th><th>Kegiatan / Rekening</th><th class="spj-num">Pagu tahunan</th><th class="spj-num">Realisasi terpetakan</th><th class="spj-num">Rencana aktif setahun</th><th class="spj-num">Sisa setelah realisasi &amp; rencana</th><th class="spj-num">Rencana bulan ini (Rp)</th></tr></thead><tbody>
+<?php foreach ($activities as $a): $id=(int)$a['id']; $current=$plannedById[$id]??0; $realized=$actualById[$id]??0; $available=(float)$a['pagu']-$realized-($yearPlans[$id]??0); ?>
+<tr><td><?= h($a['kode_kegiatan'] ?: '-') ?></td><td><strong><?= h($a['uraian']) ?></strong><br><span class="spj-muted"><?= h($a['kode_rekening'] ?: 'Tanpa kode rekening') ?> · <?= h($a['jenis_belanja']) ?></span></td><td class="spj-num">Rp <?= number_format((float)$a['pagu'],0,',','.') ?></td><td class="spj-num">Rp <?= number_format($realized,0,',','.') ?></td><td class="spj-num">Rp <?= number_format($yearPlans[$id]??0,0,',','.') ?></td><td class="spj-num">Rp <?= number_format($available,0,',','.') ?></td><td><input aria-label="Rencana <?= h($a['uraian']) ?>" style="width:155px;max-width:100%;padding:8px;border:1px solid var(--border,#d1d5db);border-radius:7px" type="number" min="0" step="0.01" name="nominal[]" value="<?= h(number_format($current,2,'.','')) ?>"><input type="hidden" name="kegiatan_id[]" value="<?= $id ?>"></td></tr>
 <?php endforeach; ?>
 </tbody></table></div><div class="spj-actions"><button class="spj-btn" type="submit">Simpan rencana bulan ini</button></div></form><?php endif; ?></div>
 <?php endif; ?>
