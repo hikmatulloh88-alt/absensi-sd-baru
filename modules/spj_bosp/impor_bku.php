@@ -59,7 +59,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
       if(!$errors&&!$rows)$errors[]='Tidak ada baris BKU yang valid.';
       if(!$errors){
        // Reconcile running balance only when the CSV provides a usable saldo column.
-       $previousBalance=null;$balanceWarnings=0;
+       $previousBalance=null;$balanceWarnings=0;$balanceChecks=0;
        foreach($rows as &$balanceRow){
         if($balanceRow['saldo']===null)continue;
         if($balanceRow['jenis']==='SALDO'){
@@ -69,6 +69,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
         if($previousBalance!==null){
          $delta=bku_balance_delta($previousBalance,(float)$balanceRow['masuk'],(float)$balanceRow['keluar'],(float)$balanceRow['saldo']);
          $balanceRow['selisih_saldo']=$delta;
+         $balanceChecks++;
          if(abs($delta)>0.01)$balanceWarnings++;
         }
         $previousBalance=(float)$balanceRow['saldo'];
@@ -96,7 +97,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
         elseif($checkedRow['jenis']==='SETOR_PAJAK')$totTaxDeposit+=(float)$checkedRow['keluar'];
         else $totOther+=(float)$checkedRow['keluar'];
        }
-       $_SESSION['spj_bku_preview']=['year'=>$year,'source'=>$source,'checksum'=>$checksum,'filename'=>basename((string)$_FILES['file_bku']['name']),'rows'=>$rows,'total_spend'=>$totSpend,'duplicate_count'=>$duplicateCount,'tax_receipt'=>$totTaxReceipt,'tax_deposit'=>$totTaxDeposit,'other_out'=>$totOther,'balance_warnings'=>$balanceWarnings,'balance_available'=>isset($col['saldo'])];
+       $_SESSION['spj_bku_preview']=['year'=>$year,'source'=>$source,'checksum'=>$checksum,'filename'=>basename((string)$_FILES['file_bku']['name']),'rows'=>$rows,'total_spend'=>$totSpend,'duplicate_count'=>$duplicateCount,'tax_receipt'=>$totTaxReceipt,'tax_deposit'=>$totTaxDeposit,'other_out'=>$totOther,'balance_warnings'=>$balanceWarnings,'balance_checks'=>$balanceChecks,'balance_available'=>isset($col['saldo'])];
       }
      }
     }
@@ -137,7 +138,7 @@ require __DIR__.'/../../includes/header.php';
 <?php if(is_array($preview)&&!empty($preview['rows'])): ?>
 <div class="bku-panel"><h2 style="margin-top:0">2. Periksa sebelum simpan</h2><p><strong><?= h($preview['filename']) ?></strong> · <?= count($preview['rows']) ?> baris · <?= h($preview['source']==='BOSP'?'BOSP Reguler':'BOS Kinerja') ?> · Tahun <?= h($preview['year']) ?></p>
 <div class="bku-stats"><div class="bku-stat">Pengeluaran akan diimpor<strong>Rp <?= number_format((float)$preview['total_spend'],0,',','.') ?></strong></div><div class="bku-stat">Baris duplikat dilewati<strong><?= (int)($preview['duplicate_count']??0) ?></strong></div><div class="bku-stat">Penerimaan pajak (kolom masuk)<strong>Rp <?= number_format((float)$preview['tax_receipt'],0,',','.') ?></strong></div><div class="bku-stat">Setoran pajak (kolom keluar)<strong>Rp <?= number_format((float)$preview['tax_deposit'],0,',','.') ?></strong></div><div class="bku-stat">Pengeluaran lain diabaikan<strong>Rp <?= number_format((float)$preview['other_out'],0,',','.') ?></strong></div></div>
-<?php if(empty($preview['balance_available'])): ?><div class="bku-alert" style="margin-top:12px">Rekonsiliasi saldo belum dapat dilakukan karena CSV tidak memiliki kolom saldo.</div><?php elseif(!empty($preview['balance_warnings'])): ?><div class="bku-alert" style="margin-top:12px">Rekonsiliasi saldo menemukan <?= (int)$preview['balance_warnings'] ?> baris dengan selisih saldo lebih dari Rp 0,01. Periksa saldo BKU asli sebelum menyimpan.</div><?php else: ?><p class="bku-muted">Tidak ditemukan selisih saldo lebih dari Rp 0,01 pada baris yang dapat dihitung. Tetap cocokkan dengan BKU asli.</p><?php endif; ?>
+<?php if(empty($preview['balance_available'])): ?><div class="bku-alert" style="margin-top:12px">Rekonsiliasi saldo belum dapat dilakukan karena CSV tidak memiliki kolom saldo.</div><?php elseif((int)($preview['balance_checks']??0)===0): ?><div class="bku-alert" style="margin-top:12px">Kolom saldo tersedia, tetapi tidak ada dua saldo berurutan yang dapat dibandingkan. Rekonsiliasi belum dapat disimpulkan.</div><?php elseif(!empty($preview['balance_warnings'])): ?><div class="bku-alert" style="margin-top:12px">Rekonsiliasi saldo menemukan <?= (int)$preview['balance_warnings'] ?> baris dengan selisih saldo lebih dari Rp 0,01 dari <?= (int)$preview['balance_checks'] ?> perbandingan. Periksa saldo BKU asli sebelum menyimpan.</div><?php else: ?><p class="bku-muted">Tidak ditemukan selisih saldo lebih dari Rp 0,01 dari <?= (int)$preview['balance_checks'] ?> perbandingan. Tetap cocokkan dengan BKU asli.</p><?php endif; ?>
 <div class="bku-table-wrap" style="margin-top:12px"><table class="bku-table"><thead><tr><th>Tanggal</th><th>No. bukti</th><th>Uraian</th><th>Kategori otomatis</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th><th style="text-align:right">Selisih saldo</th><th>Duplikat</th></tr></thead><tbody>
 <?php foreach(array_slice($preview['rows'],0,150) as $r): ?><tr><td><?= h($r['tanggal']) ?></td><td><?= h($r['nomor']?:'-') ?></td><td><?= h($r['uraian']) ?></td><td><?= h(str_replace('_',' ',$r['jenis'])) ?></td><td style="text-align:right;white-space:nowrap">Rp <?= number_format((float)$r['masuk'],0,',','.') ?></td><td style="text-align:right;white-space:nowrap">Rp <?= number_format((float)$r['keluar'],0,',','.') ?></td><td style="text-align:right;white-space:nowrap"><?= $r['saldo']===null?'—':'Rp '.number_format((float)$r['saldo'],0,',','.') ?></td><td style="text-align:right;white-space:nowrap"><?= $r['selisih_saldo']===null?'—':(($r['selisih_saldo']>0?'+':''). 'Rp '.number_format((float)$r['selisih_saldo'],0,',','.')) ?></td><td><?= !empty($r['duplikat'])?'Sudah ada':'-' ?></td></tr><?php endforeach; ?>
 </tbody></table></div><?php if(count($preview['rows'])>150): ?><p class="bku-muted">Menampilkan 150 baris pertama. Semua baris sudah diproses dalam pratinjau.</p><?php endif; ?>
