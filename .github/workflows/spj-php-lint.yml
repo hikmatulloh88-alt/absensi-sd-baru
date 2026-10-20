@@ -9,6 +9,7 @@ on:
       - 'tests/**'
       - 'database/spj_rencana_bulanan.sql'
       - 'database/spj_transaksi.sql'
+      - 'includes/header.php'
       - '.github/workflows/spj-php-lint.yml'
   push:
     branches: [feat/spj-bosp-kinerja]
@@ -16,6 +17,8 @@ on:
       - 'modules/spj_bosp/**'
       - 'modules/spj_bos_kinerja/**'
       - 'database/spj_rencana_bulanan.sql'
+      - 'database/spj_transaksi.sql'
+      - 'includes/header.php'
       - '.github/workflows/spj-php-lint.yml'
 
 jobs:
@@ -61,3 +64,4 @@ jobs:
           set -euo pipefail
           find modules/spj_bosp modules/spj_bos_kinerja -type f -name '*.php' -print0 |
             xargs -0 -r -n1 php -l
+          php -l includes/header.php
