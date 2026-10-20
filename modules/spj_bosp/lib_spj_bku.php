@@ -40,3 +40,19 @@ function bku_classify(string $description, string $activity, float $outgoing, fl
     if ($outgoing <= 0) return 'LAINNYA';
     return 'PENGELUARAN';
 }
+
+
+/** Stable fingerprint for repeated rows within one BKU CSV preview. */
+function bku_row_key(string $source, array $row): string
+{
+    $fields = [
+        $source,
+        (string) ($row['tanggal'] ?? ''),
+        (string) ($row['nomor'] ?? ''),
+        (string) ($row['jenis'] ?? ''),
+        number_format((float) ($row['masuk'] ?? 0), 2, '.', ''),
+        number_format((float) ($row['keluar'] ?? 0), 2, '.', ''),
+        trim((string) ($row['uraian'] ?? '')),
+    ];
+    return hash('sha256', implode('|', $fields));
+}
