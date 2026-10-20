@@ -7,6 +7,8 @@ if(empty($_SESSION['spj_csrf']))$_SESSION['spj_csrf']=bin2hex(random_bytes(32));
 function si_s($v,int $max=255): string { $s=trim((string)$v); return mb_substr($s,0,$max); }
 function si_rp(float $n): string { return 'Rp '.number_format($n,0,',','.'); }
 function si_terbilang(int $n): string {
+ if($n===0)return 'nol';
+ if($n<0)return 'minus '.si_terbilang(abs($n));
  $w=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas'];
  if($n<12)return $w[$n];if($n<20)return si_terbilang($n-10).' belas';if($n<100)return si_terbilang(intdiv($n,10)).' puluh'.($n%10?' '.si_terbilang($n%10):'');
  if($n<200)return 'seratus'.($n>100?' '.si_terbilang($n-100):'');if($n<1000)return si_terbilang(intdiv($n,100)).' ratus'.($n%100?' '.si_terbilang($n%100):'');
