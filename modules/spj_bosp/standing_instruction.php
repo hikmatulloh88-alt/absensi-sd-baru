@@ -6,20 +6,7 @@ $pageTitle='Standing Instruction (SI)';
 if(empty($_SESSION['spj_csrf']))$_SESSION['spj_csrf']=bin2hex(random_bytes(32));
 function si_s($v,int $max=255): string { $s=trim((string)$v); return mb_substr($s,0,$max); }
 function si_rp(float $n): string { return 'Rp '.number_format($n,0,',','.'); }
-if (!function_exists('si_terbilang')) {
-function si_terbilang(int $n): string {
- if($n===0)return 'nol';
- if($n<0)return 'minus '.si_terbilang(abs($n));
- $w=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas'];
- if($n<12)return $w[$n];if($n<20)return si_terbilang($n-10).' belas';if($n<100)return si_terbilang(intdiv($n,10)).' puluh'.($n%10?' '.si_terbilang($n%10):'');
- if($n<200)return 'seratus'.($n>100?' '.si_terbilang($n-100):'');if($n<1000)return si_terbilang(intdiv($n,100)).' ratus'.($n%100?' '.si_terbilang($n%100):'');
- if($n<2000)return 'seribu'.($n>1000?' '.si_terbilang($n-1000):'');if($n<1000000)return si_terbilang(intdiv($n,1000)).' ribu'.($n%1000?' '.si_terbilang($n%1000):'');
- if($n<1000000000)return si_terbilang(intdiv($n,1000000)).' juta'.($n%1000000?' '.si_terbilang($n%1000000):'');
- if($n<1000000000000)return si_terbilang(intdiv($n,1000000000)).' miliar'.($n%1000000000?' '.si_terbilang($n%1000000000):'');
- if($n<1000000000000000)return si_terbilang(intdiv($n,1000000000000)).' triliun'.($n%1000000000000?' '.si_terbilang($n%1000000000000):'');
- return (string)$n;
-}
-}
+require_once __DIR__ . '/lib_spj_si.php';
 $default=['school'=>'SEKOLAH DASAR NEGERI CIBURAYUT 01','address'=>'Jln. Ciburayut Rt.06/03 Desa Ciburayut, Kec. Cigombong, Kab. Bogor, Jawa Barat','npsn'=>'20201005','email'=>'','number'=>'','subject'=>'Standing Instruction','attachment'=>'1 lampiran','bank_destination'=>'Bank BJB KCP Ciawi','debit_account'=>'','debit_name'=>'','place'=>'Bogor','date'=>'','month'=>'','year'=>(string)date('Y'),'head_name'=>'','head_nip'=>'','treasurer_name'=>'','treasurer_nip'=>'','program'=>'BOSP Reguler','note'=>'','recipients'=>[['account'=>'','name'=>'','bank'=>'BJB','amount'=>'','note'=>''],['account'=>'','name'=>'','bank'=>'BJB','amount'=>'','note'=>''],['account'=>'','name'=>'','bank'=>'BJB','amount'=>'','note'=>'']]];
 $data=$_SESSION['spj_si_data']??$default;$errors=[];$saved=false;
 if($_SERVER['REQUEST_METHOD']==='POST'){
