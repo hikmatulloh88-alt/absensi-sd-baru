@@ -63,6 +63,18 @@ if (bku_row_key('BOSP', $duplicateRow) === $differentSource) {
 }
 echo "BKU duplicate fingerprint tests passed: 3 checks." . PHP_EOL;
 
+$delta = bku_balance_delta(1000.0, 250.0, 100.0, 1150.0);
+if (abs($delta) > 0.001) {
+    fwrite(STDERR, 'FAIL expected zero balance delta, got ' . $delta . PHP_EOL);
+    exit(1);
+}
+$delta = bku_balance_delta(1000.0, 250.0, 100.0, 1140.0);
+if (abs($delta - (-10.0)) > 0.001) {
+    fwrite(STDERR, 'FAIL expected -10 balance delta, got ' . $delta . PHP_EOL);
+    exit(1);
+}
+echo "BKU balance reconciliation tests passed: 2 checks." . PHP_EOL;
+
 $rkasCases = [
     ['Rp 1.234.567', 1234567.0],
     ['1,234,567', 1234567.0],
