@@ -20,6 +20,9 @@ function navActive(string $needle): string { global $uri; return str_contains($u
   <div class="brand"><div class="brand-mark">AC</div><div><strong>ABSENSI<span>+</span></strong><small>SDN CIBURAYUT 01</small></div><button class="close-menu" id="closeMenu" aria-label="Tutup menu">×</button></div>
   <div class="nav-caption">MENU UTAMA</div>
   <nav class="nav-list">
+    <?php if (($_SESSION['role'] ?? '') === 'siswa'): ?>
+    <a class="nav-link<?= navActive('/modules/surat_siswa/') ?>" href="<?= h($basePath) ?>/modules/surat_siswa/index.php"><span>📝</span>Pengajuan Izin / Sakit</a>
+    <?php else: ?>
     <a class="nav-link<?= (str_ends_with($uri, '/index.php') && !str_contains($uri, '/modules/')) ? ' active' : '' ?>" href="<?= h($basePath) ?>/index.php"><span>▦</span>Dashboard</a>
     <div class="nav-group<?= navActive('/modules/absensi/') ?>">
       <button class="nav-group-toggle<?= navActive('/modules/absensi/') ?>" type="button" aria-expanded="<?= str_contains($uri, '/modules/absensi/') ? 'true' : 'false' ?>" aria-controls="nav-absensi">
@@ -78,6 +81,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
     <a class="nav-link<?= navActive('/modules/laporan/') ?>" href="<?= h($basePath) ?>/modules/laporan/index.php"><span>▤</span>Laporan</a>
     <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
     <a class="nav-link<?= navActive('/modules/pengguna/') ?>" href="<?= h($basePath) ?>/modules/pengguna/index.php"><span>⚙</span>Kelola Akun</a>
+    <?php endif; ?>
     <?php endif; ?>
   </nav>
   <div class="sidebar-bottom"><div class="school-avatar">SD</div><div><strong>SDN Ciburayut 01</strong><small>Mode pengembangan lokal</small></div></div>
