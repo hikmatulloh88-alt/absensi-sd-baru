@@ -8,6 +8,7 @@ on:
       - 'modules/spj_bos_kinerja/**'
       - 'tests/**'
       - 'database/spj_rencana_bulanan.sql'
+      - 'database/spj_transaksi.sql'
       - '.github/workflows/spj-php-lint.yml'
   push:
     branches: [feat/spj-bosp-kinerja]
@@ -48,10 +49,12 @@ jobs:
           MYSQL_PWD: test-root-password
         run: |
           set -euo pipefail
+          mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_transaksi.sql
+          mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_transaksi.sql
           mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_rencana_bulanan.sql
           mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_rencana_bulanan.sql
-          test "$(mysql --batch --skip-column-names --host=127.0.0.1 --user=root spj_migration_test -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='spj_migration_test' AND table_name IN ('spj_rkas_import','spj_rkas_kegiatan','spj_rencana_bulanan','spj_transaksi_rkas')")" = "4"
-          echo "SPJ migration passed twice; all 4 isolated tables exist."
+          test "$(mysql --batch --skip-column-names --host=127.0.0.1 --user=root spj_migration_test -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='spj_migration_test' AND table_name IN ('spj_transaksi','spj_rkas_import','spj_rkas_kegiatan','spj_rencana_bulanan','spj_transaksi_rkas')")" = "5"
+          echo "Both SPJ migrations passed twice; all 5 isolated tables exist."
       - name: Check SPJ PHP syntax
         shell: bash
         run: |
