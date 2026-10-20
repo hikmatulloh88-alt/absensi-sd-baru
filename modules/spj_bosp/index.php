@@ -11,7 +11,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$errors){
 if(!hash_equals((string)($_SESSION['spj_csrf']??''),(string)($_POST['csrf']??''))) $errors[]='Sesi formulir berakhir. Muat ulang halaman.';
 else {
 $tanggal=trim((string)($_POST['tanggal']??''));$nomor=trim((string)($_POST['nomor_bukti']??''));$kegiatan=trim((string)($_POST['kegiatan']??''));$uraian=trim((string)($_POST['uraian']??''));$penyedia=trim((string)($_POST['penyedia']??''));$bruto=(float)($_POST['nilai_bruto']??0);$pajak=(float)($_POST['pajak']??0);
-if(!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/',$tanggal)||!checkdate((int)substr($tanggal,5,2),(int)substr($tanggal,8,2),(int)substr($tanggal,0,4))||$kegiatan===''||$uraian===''||$bruto<0||$pajak<0||$pajak>$bruto)$errors[]='Tanggal, kegiatan, uraian, dan nilai transaksi harus valid. Pajak tidak boleh melebihi nilai bruto.';
+if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$tanggal)||!checkdate((int)substr($tanggal,5,2),(int)substr($tanggal,8,2),(int)substr($tanggal,0,4))||$kegiatan===''||$uraian===''||$bruto<0||$pajak<0||$pajak>$bruto)$errors[]='Tanggal, kegiatan, uraian, dan nilai transaksi harus valid. Pajak tidak boleh melebihi nilai bruto.';
 $filePath=null;
 if(!$errors&&isset($_FILES['bukti'])&&$_FILES['bukti']['error']!==UPLOAD_ERR_NO_FILE){
 $f=$_FILES['bukti'];$allowed=['application/pdf'=>'pdf','image/jpeg'=>'jpg','image/png'=>'png'];
