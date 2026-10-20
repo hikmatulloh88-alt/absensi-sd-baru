@@ -71,7 +71,17 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
       if(!$errors&&!$rows)$errors[]='Tidak ada baris BKU yang valid.';
       if(!$errors){
        $q=$pdo->prepare("SELECT id FROM spj_transaksi WHERE sumber_dana=? AND tanggal=? AND nomor_bukti=? AND nilai_bruto=? AND uraian=? LIMIT 1");
-       foreach($rows as &$row){$row['duplikat']=false;if($row['jenis']==='PENGELUARAN'&&$row['keluar']>0){$q->execute([$source,$row['tanggal'],$row['nomor'],$row['keluar'],$row['uraian']]);$row['duplikat']=(bool)$q->fetchColumn();}}unset($row);
+       $seenInFile=[];
+       foreach($rows as &$row){
+        $row['duplikat']=false;
+        if($row['jenis']==='PENGELUARAN'&&$row['keluar']>0){
+         $key=hash('sha256',implode('|',[$source,$row['tanggal'],$row['nomor'],number_format((float)$row['keluar'],2,'.',''),$row['uraian']]));
+         $q->execute([$source,$row['tanggal'],$row['nomor'],$row['keluar'],$row['uraian']]);
+         $existsInDb=(bool)$q->fetchColumn();
+         $row['duplikat']=$existsInDb||isset($seenInFile[$key]);
+         $seenInFile[$key]=true;
+        }
+       }unset($row);
        $_SESSION['spj_bku_preview']=['year'=>$year,'source'=>$source,'checksum'=>$checksum,'filename'=>basename((string)$_FILES['file_bku']['name']),'rows'=>$rows,'total_spend'=>$totSpend,'tax_receipt'=>$totTaxReceipt,'tax_deposit'=>$totTaxDeposit,'other_out'=>$totOther];
       }
      }
