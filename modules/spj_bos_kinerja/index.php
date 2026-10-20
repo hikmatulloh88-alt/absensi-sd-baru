@@ -21,7 +21,7 @@ if(!isset($allowed[$mime]))$errors[]='Format bukti harus PDF, JPG, atau PNG.';
 else{$name=bin2hex(random_bytes(16)).'.'.$allowed[$mime];if(!is_dir($uploadDir)||!is_writable($uploadDir)||!move_uploaded_file($f['tmp_name'],$uploadDir.'/'.$name))$errors[]='Bukti gagal disimpan. Periksa izin folder modul SPJ.';else$filePath='bukti/'.$name;}
 }
 }
-if(!$errors)try{$q=$pdo->prepare("INSERT INTO spj_transaksi(sumber_dana,tanggal,nomor_bukti,kegiatan,uraian,penyedia,nilai_bruto,pajak,bukti_file,created_by) VALUES('BOS_KINERJA',?,?,?,?,?,?,?,?,?)");$q->execute([$tanggal,$nomor,$kegiatan,$uraian,$penyedia?:null,$bruto,$pajak,$filePath,$_SESSION['akun_id']??null]);$ok='Transaksi SPJ BOS Kinerja tersimpan.';}catch(Throwable $e){$errors[]='Transaksi gagal disimpan. Periksa koneksi dan struktur database.';}
+if(!$errors)try{$q=$pdo->prepare("INSERT INTO spj_transaksi(sumber_dana,tanggal,nomor_bukti,kegiatan,uraian,penyedia,nilai_bruto,pajak,bukti_file,created_by) VALUES('BOS_KINERJA',?,?,?,?,?,?,?,?,?)");$q->execute([$tanggal,$nomor,$kegiatan,$uraian,$penyedia?:null,$bruto,$pajak,$filePath,$_SESSION['akun_id']??null]);$ok='Transaksi SPJ BOS Kinerja tersimpan.';}catch(Throwable $e){if($filePath && is_file($uploadDir.'/'.basename($filePath))) @unlink($uploadDir.'/'.basename($filePath));$errors[]='Transaksi gagal disimpan. Periksa koneksi dan struktur database.';}
 }}
 if(empty($_SESSION['spj_csrf']))$_SESSION['spj_csrf']=bin2hex(random_bytes(32));
 $filters=['awal'=>trim((string)($_GET['awal']??'')),'akhir'=>trim((string)($_GET['akhir']??'')),'cari'=>trim((string)($_GET['cari']??''))];$rows=[];$totBruto=0;$totPajak=0;
