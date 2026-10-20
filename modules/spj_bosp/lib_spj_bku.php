@@ -91,6 +91,14 @@ function bku_reconcile_balances(array $rows): array
         }
 
         $reported = (float) $reported;
+        // Opening/closing balance lines are anchors, not ordinary movements
+        // to compare against the preceding row.
+        if (($row['jenis'] ?? '') === 'SALDO') {
+            $anchor = $reported;
+            $movement = 0.0;
+            continue;
+        }
+
         if ($anchor !== null) {
             $delta = round($reported - ($anchor + $movement), 2);
             $row['selisih_saldo'] = $delta;
@@ -98,7 +106,7 @@ function bku_reconcile_balances(array $rows): array
             if (abs($delta) > 0.01) $warnings++;
         }
 
-        // Every reported saldo becomes the next reconciliation anchor.
+        // Every reported running saldo becomes the next reconciliation anchor.
         $anchor = $reported;
         $movement = 0.0;
     }
