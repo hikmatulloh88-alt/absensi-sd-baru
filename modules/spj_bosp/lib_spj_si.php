@@ -1,6 +1,20 @@
 <?php
 declare(strict_types=1);
 
+if (!function_exists('si_parse_amount')) {
+function si_parse_amount(string $raw): ?string {
+ $raw=trim($raw);
+ if($raw==='')return '';
+ $raw=preg_replace('/^Rp\\s*/i','',$raw);
+ if($raw===''||preg_match('/^[0-9]{1,15}$/',$raw)===1)return $raw;
+ if(preg_match('/^[0-9]{1,3}(?:\\.[0-9]{3})+$/',$raw)===1||preg_match('/^[0-9]{1,3}(?:,[0-9]{3})+$/',$raw)===1){
+  $digits=str_replace(['.',','],'',$raw);
+  return strlen($digits)<=15?$digits:null;
+ }
+ return null;
+}
+}
+
 if (!function_exists('si_terbilang')) {
 function si_terbilang(int $n): string {
  if($n===0)return 'nol';
