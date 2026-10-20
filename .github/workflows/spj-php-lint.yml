@@ -25,6 +25,8 @@ jobs:
         with:
           php-version: '8.2'
           tools: none
+      - name: Run BKU parsing logic tests
+        run: php tests/spj_bku_logic_test.php
       - name: Check SPJ PHP syntax
         shell: bash
         run: |
