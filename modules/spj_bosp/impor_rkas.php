@@ -14,7 +14,7 @@ function rkas_money($raw): ?float {
   if (str_contains($v, ',') && str_contains($v, '.')) {
     if (strrpos($v, ',') > strrpos($v, '.')) $v = str_replace(',', '.', str_replace('.', '', $v));
     else $v = str_replace(',', '', $v);
-  } elseif (str_contains($v, ',')) $v = str_replace(',', '.', $v);
+  } elseif (str_contains($v, ',')) { if (preg_match('/^\d{1,3}(,\d{3})+$/', $v)) $v = str_replace(',', '', $v); else $v = str_replace(',', '.', $v); }
   elseif (preg_match('/^\d{1,3}(\.\d{3})+$/', $v)) $v = str_replace('.', '', $v);
   return is_numeric($v) && (float)$v >= 0 ? (float)$v : null;
 }
