@@ -60,20 +60,25 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
        $q=$pdo->prepare("SELECT id FROM spj_transaksi WHERE sumber_dana=? AND tanggal=? AND nomor_bukti=? AND nilai_bruto=? AND uraian=? LIMIT 1");
        $seenInFile=[];
        foreach($rows as &$row){
-        $row['duplikat']=false;
-        if($row['jenis']==='PENGELUARAN'&&$row['keluar']>0){
-         $key=hash('sha256',implode('|',[$source,$row['tanggal'],$row['nomor'],number_format((float)$row['keluar'],2,'.',''),$row['uraian']]));
+        $key=bku_row_key($source,$row);
+        $duplicateInFile=isset($seenInFile[$key]);
+        $seenInFile[$key]=true;
+        $existsInDb=false;
+        // The transaction table stores expenses only; tax/balance movements are checked within this CSV only.
+        if($row['jenis']==='PENGELUARAN'&&(float)$row['keluar']>0){
          $q->execute([$source,$row['tanggal'],$row['nomor'],$row['keluar'],$row['uraian']]);
          $existsInDb=(bool)$q->fetchColumn();
-         $row['duplikat']=$existsInDb||isset($seenInFile[$key]);
-         $seenInFile[$key]=true;
         }
+        $row['duplikat']=$duplicateInFile||$existsInDb;
        }unset($row);
-       // Preview totals exclude expenditure rows that will be skipped as duplicates.
-       $totSpend=0.0;$duplicateCount=0;
+       // Recompute every preview bucket after duplicate flags are known.
+       $totSpend=0.0;$totTaxReceipt=0.0;$totTaxDeposit=0.0;$totOther=0.0;$duplicateCount=0;
        foreach($rows as $checkedRow){
         if(!empty($checkedRow['duplikat'])){$duplicateCount++;continue;}
         if($checkedRow['jenis']==='PENGELUARAN'&&(float)$checkedRow['keluar']>0)$totSpend+=(float)$checkedRow['keluar'];
+        elseif($checkedRow['jenis']==='PENERIMAAN_PAJAK')$totTaxReceipt+=(float)$checkedRow['masuk'];
+        elseif($checkedRow['jenis']==='SETOR_PAJAK')$totTaxDeposit+=(float)$checkedRow['keluar'];
+        else $totOther+=(float)$checkedRow['keluar'];
        }
        $_SESSION['spj_bku_preview']=['year'=>$year,'source'=>$source,'checksum'=>$checksum,'filename'=>basename((string)$_FILES['file_bku']['name']),'rows'=>$rows,'total_spend'=>$totSpend,'duplicate_count'=>$duplicateCount,'tax_receipt'=>$totTaxReceipt,'tax_deposit'=>$totTaxDeposit,'other_out'=>$totOther];
       }
