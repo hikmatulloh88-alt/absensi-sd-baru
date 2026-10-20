@@ -47,13 +47,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
        elseif(preg_match('/^\d{4}-\d{2}-\d{2}$/',$dateRaw))$date=$dateRaw;
        $desc=trim((string)($data[$col['uraian']]??''));$out=bku_money($data[$col['keluar']]??'');$in=isset($col['masuk'])?bku_money($data[$col['masuk']]??''):0.0;
        if(!$date||!checkdate((int)substr($date,5,2),(int)substr($date,8,2),(int)substr($date,0,4))||(int)substr($date,0,4)!==$year||$desc===''||$out===null||$in===null){$bad[]='Baris '.$line.': tahun tanggal harus sama dengan tahun anggaran terpilih, dan tanggal/uraian/nominal harus valid.';continue;}
-       $voucher=trim((string)($data[$col['nomor']]??''));$activity=trim((string)($data[$col['kegiatan']]??''));$low=strtolower($desc.' '.$activity);
-       $kind='PENGELUARAN';
-       if(preg_match('/saldo awal|saldo sebelumnya|saldo akhir|saldo dibawa|saldo kas awal/i',$low))$kind='SALDO';
-       elseif(preg_match('/terima\s*(pph|ppn)|penerimaan\s*(pph|ppn)|pemungutan\s*(pph|ppn)/i',$low))$kind='PENERIMAAN_PAJAK';
-       elseif(preg_match('/setor\s*(pph|ppn)|setoran\s*(pph|ppn)|penyetoran\s*(pph|ppn)/i',$low))$kind='SETOR_PAJAK';
-       elseif($out<=0 && $in>0)$kind='PENERIMAAN';
-       elseif($out<=0)$kind='LAINNYA';
+       $voucher=trim((string)($data[$col['nomor']]??''));$activity=trim((string)($data[$col['kegiatan']]??''));
+       $kind=bku_classify($desc,$activity,(float)$out,(float)$in);
        $rows[]=['tanggal'=>$date,'nomor'=>$voucher,'uraian'=>mb_substr($desc,0,255),'kegiatan'=>mb_substr($activity!==''?$activity:'Belum dipetakan',0,180),'masuk'=>$in,'keluar'=>$out,'jenis'=>$kind];
        if($kind==='PENGELUARAN'&&$out>0)$totSpend+=$out;elseif($kind==='PENERIMAAN_PAJAK')$totTaxReceipt+=$in;elseif($kind==='SETOR_PAJAK')$totTaxDeposit+=$out;else$totOther+=$out;
        if(count($rows)>5000){$bad[]='Maksimal 5.000 baris per file.';break;}
