@@ -56,3 +56,10 @@ function bku_row_key(string $source, array $row): string
     ];
     return hash('sha256', implode('|', $fields));
 }
+
+
+/** Difference between reported and calculated running balance. */
+function bku_balance_delta(float $previous, float $incoming, float $outgoing, float $reported): float
+{
+    return round($reported - ($previous + $incoming - $outgoing), 2);
+}
