@@ -46,10 +46,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
        if(preg_match('/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/',$dateRaw,$m))$date=sprintf('%04d-%02d-%02d',(int)$m[3],(int)$m[2],(int)$m[1]);
        elseif(preg_match('/^\d{4}-\d{2}-\d{2}$/',$dateRaw))$date=$dateRaw;
        $desc=trim((string)($data[$col['uraian']]??''));$out=bku_money($data[$col['keluar']]??'');$in=isset($col['masuk'])?bku_money($data[$col['masuk']]??''):0.0;
-       if(!$date||!checkdate((int)substr($date,5,2),(int)substr($date,8,2),(int)substr($date,0,4))||(int)substr($date,0,4)!==$year||$desc===''||$out===null||$in===null){$bad[]='Baris '.$line.': tahun tanggal harus sama dengan tahun anggaran terpilih, dan tanggal/uraian/nominal harus valid.';continue;}
+       $balance=isset($col['saldo'])?bku_money($data[$col['saldo']]??''):null;
+       if(!$date||!checkdate((int)substr($date,5,2),(int)substr($date,8,2),(int)substr($date,0,4))||(int)substr($date,0,4)!==$year||$desc===''||$out===null||$in===null||(isset($col['saldo'])&&$balance===null&&trim((string)($data[$col['saldo']]??''))!=='')){$bad[]='Baris '.$line.': tahun tanggal harus sama dengan tahun anggaran terpilih, dan tanggal/uraian/nominal harus valid.';continue;}
        $voucher=trim((string)($data[$col['nomor']]??''));$activity=trim((string)($data[$col['kegiatan']]??''));
        $kind=bku_classify($desc,$activity,(float)$out,(float)$in);
-       $rows[]=['tanggal'=>$date,'nomor'=>$voucher,'uraian'=>mb_substr($desc,0,255),'kegiatan'=>mb_substr($activity!==''?$activity:'Belum dipetakan',0,180),'masuk'=>$in,'keluar'=>$out,'jenis'=>$kind];
+       $rows[]=['tanggal'=>$date,'nomor'=>$voucher,'uraian'=>mb_substr($desc,0,255),'kegiatan'=>mb_substr($activity!==''?$activity:'Belum dipetakan',0,180),'masuk'=>$in,'keluar'=>$out,'saldo'=>$balance,'selisih_saldo'=>null,'jenis'=>$kind];
        if($kind==='PENGELUARAN'&&$out>0)$totSpend+=$out;elseif($kind==='PENERIMAAN_PAJAK')$totTaxReceipt+=$in;elseif($kind==='SETOR_PAJAK')$totTaxDeposit+=$out;else$totOther+=$out;
        if(count($rows)>5000){$bad[]='Maksimal 5.000 baris per file.';break;}
       }
@@ -57,6 +58,21 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
       if($bad)$errors=array_merge($errors,array_slice($bad,0,10));
       if(!$errors&&!$rows)$errors[]='Tidak ada baris BKU yang valid.';
       if(!$errors){
+       // Reconcile running balance only when the CSV provides a usable saldo column.
+       $previousBalance=null;$balanceWarnings=0;
+       foreach($rows as &$balanceRow){
+        if($balanceRow['saldo']===null)continue;
+        if($balanceRow['jenis']==='SALDO'){
+         $previousBalance=(float)$balanceRow['saldo'];
+         continue;
+        }
+        if($previousBalance!==null){
+         $delta=bku_balance_delta($previousBalance,(float)$balanceRow['masuk'],(float)$balanceRow['keluar'],(float)$balanceRow['saldo']);
+         $balanceRow['selisih_saldo']=$delta;
+         if(abs($delta)>0.01)$balanceWarnings++;
+        }
+        $previousBalance=(float)$balanceRow['saldo'];
+       }unset($balanceRow);
        $q=$pdo->prepare("SELECT id FROM spj_transaksi WHERE sumber_dana=? AND tanggal=? AND nomor_bukti=? AND nilai_bruto=? AND uraian=? LIMIT 1");
        $seenInFile=[];
        foreach($rows as &$row){
@@ -80,7 +96,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&$ready){
         elseif($checkedRow['jenis']==='SETOR_PAJAK')$totTaxDeposit+=(float)$checkedRow['keluar'];
         else $totOther+=(float)$checkedRow['keluar'];
        }
-       $_SESSION['spj_bku_preview']=['year'=>$year,'source'=>$source,'checksum'=>$checksum,'filename'=>basename((string)$_FILES['file_bku']['name']),'rows'=>$rows,'total_spend'=>$totSpend,'duplicate_count'=>$duplicateCount,'tax_receipt'=>$totTaxReceipt,'tax_deposit'=>$totTaxDeposit,'other_out'=>$totOther];
+       $_SESSION['spj_bku_preview']=['year'=>$year,'source'=>$source,'checksum'=>$checksum,'filename'=>basename((string)$_FILES['file_bku']['name']),'rows'=>$rows,'total_spend'=>$totSpend,'duplicate_count'=>$duplicateCount,'tax_receipt'=>$totTaxReceipt,'tax_deposit'=>$totTaxDeposit,'other_out'=>$totOther,'balance_warnings'=>$balanceWarnings];
       }
      }
     }
