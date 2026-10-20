@@ -129,3 +129,26 @@ if ($checks !== 1 || $warnings !== 0 || abs((float)$reconciled[1]['selisih_saldo
     exit(1);
 }
 echo "BKU opening-saldo anchor test passed.\n";
+
+
+require_once __DIR__ . '/../modules/spj_bosp/lib_spj_si.php';
+$siCases = [
+    [0, 'nol'],
+    [1, 'satu'],
+    [11, 'sebelas'],
+    [15, 'lima belas'],
+    [100, 'seratus'],
+    [1250, 'seribu dua ratus lima puluh'],
+    [1234567, 'satu juta dua ratus tiga puluh empat ribu lima ratus enam puluh tujuh'],
+    [1000000000, 'satu miliar'],
+    [2500000000, 'dua miliar lima ratus juta'],
+    [1000000000000, 'satu triliun'],
+];
+foreach ($siCases as [$input, $expected]) {
+    $actual = si_terbilang($input);
+    if ($actual !== $expected) {
+        fwrite(STDERR, 'FAIL si_terbilang(' . $input . '): got ' . var_export($actual, true) . ', expected ' . var_export($expected, true) . PHP_EOL);
+        exit(1);
+    }
+}
+echo 'SI terbilang tests passed: ' . count($siCases) . ' cases.' . PHP_EOL;
