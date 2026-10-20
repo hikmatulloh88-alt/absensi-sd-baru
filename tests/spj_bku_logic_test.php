@@ -73,7 +73,7 @@ if (abs($delta - (-10.0)) > 0.001) {
     fwrite(STDERR, 'FAIL expected -10 balance delta, got ' . $delta . PHP_EOL);
     exit(1);
 }
-echo "BKU balance reconciliation tests passed: 2 checks." . PHP_EOL;
+echo "BKU balance delta tests passed: 2 checks." . PHP_EOL;
 
 $rkasCases = [
     ['Rp 1.234.567', 1234567.0],
@@ -98,3 +98,22 @@ if (rkas_norm("\xEF\xBB\xBF Kode Rekening") !== 'koderekening') {
     exit(1);
 }
 echo 'RKAS logic tests passed: ' . count($rkasCases) . " money cases + header normalization." . PHP_EOL;
+
+$reconcileRows = [
+    ['jenis'=>'SALDO','masuk'=>0.0,'keluar'=>0.0,'saldo'=>1000.0,'selisih_saldo'=>null],
+    ['jenis'=>'PENGELUARAN','masuk'=>0.0,'keluar'=>100.0,'saldo'=>null,'selisih_saldo'=>null],
+    ['jenis'=>'PENERIMAAN','masuk'=>50.0,'keluar'=>0.0,'saldo'=>null,'selisih_saldo'=>null],
+    ['jenis'=>'PENGELUARAN','masuk'=>0.0,'keluar'=>25.0,'saldo'=>925.0,'selisih_saldo'=>null],
+];
+[$reconciled, $checks, $warnings] = bku_reconcile_balances($reconcileRows);
+if ($checks !== 1 || $warnings !== 0 || abs((float)$reconciled[3]['selisih_saldo']) > 0.001) {
+    fwrite(STDERR, "FAIL reconciliation must accumulate movements across blank saldo rows.\n");
+    exit(1);
+}
+$reconcileRows[3]['saldo'] = 920.0;
+[$reconciled, $checks, $warnings] = bku_reconcile_balances($reconcileRows);
+if ($checks !== 1 || $warnings !== 1 || abs((float)$reconciled[3]['selisih_saldo'] - (-5.0)) > 0.001) {
+    fwrite(STDERR, "FAIL reconciliation must flag discrepancy after blank saldo rows.\n");
+    exit(1);
+}
+echo "BKU reconciliation tests passed: blank-saldo movement accumulation + discrepancy detection.\n";
