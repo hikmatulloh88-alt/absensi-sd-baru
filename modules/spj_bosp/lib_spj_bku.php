@@ -100,7 +100,8 @@ function bku_reconcile_balances(array $rows): array
         }
 
         if ($anchor !== null) {
-            $delta = round($reported - ($anchor + $movement), 2);
+            // Include this row's own movement when its saldo is reported.
+            $delta = round($reported - ($anchor + $movement + $incoming - $outgoing), 2);
             $row['selisih_saldo'] = $delta;
             $checks++;
             if (abs($delta) > 0.01) $warnings++;
