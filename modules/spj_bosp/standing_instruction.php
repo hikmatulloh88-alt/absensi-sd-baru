@@ -1,0 +1,84 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../../includes/bootstrap.php';
+if (($_SESSION['role'] ?? '') !== 'admin') { http_response_code(403); exit('Akses Standing Instruction hanya untuk admin.'); }
+$pageTitle='Standing Instruction (SI)';
+if(empty($_SESSION['spj_csrf']))$_SESSION['spj_csrf']=bin2hex(random_bytes(32));
+function si_s($v,int $max=255): string { $s=trim((string)$v); return mb_substr($s,0,$max); }
+function si_rp(float $n): string { return 'Rp '.number_format($n,0,',','.'); }
+function si_terbilang(int $n): string {
+ $w=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas'];
+ if($n<12)return $w[$n];if($n<20)return si_terbilang($n-10).' belas';if($n<100)return si_terbilang(intdiv($n,10)).' puluh'.($n%10?' '.si_terbilang($n%10):'');
+ if($n<200)return 'seratus'.($n>100?' '.si_terbilang($n-100):'');if($n<1000)return si_terbilang(intdiv($n,100)).' ratus'.($n%100?' '.si_terbilang($n%100):'');
+ if($n<2000)return 'seribu'.($n>1000?' '.si_terbilang($n-1000):'');if($n<1000000)return si_terbilang(intdiv($n,1000)).' ribu'.($n%1000?' '.si_terbilang($n%1000):'');
+ if($n<1000000000)return si_terbilang(intdiv($n,1000000)).' juta'.($n%1000000?' '.si_terbilang($n%1000000):'');
+ return (string)$n;
+}
+$default=['school'=>'SEKOLAH DASAR NEGERI CIBURAYUT 01','address'=>'Jln. Ciburayut Rt.06/03 Desa Ciburayut, Kec. Cigombong, Kab. Bogor, Jawa Barat','npsn'=>'20201005','email'=>'','number'=>'','subject'=>'Standing Instruction','attachment'=>'1 lampiran','bank_destination'=>'Bank BJB KCP Ciawi','debit_account'=>'','debit_name'=>'','place'=>'Bogor','date'=>'','month'=>'','year'=>(string)date('Y'),'head_name'=>'','head_nip'=>'','treasurer_name'=>'','treasurer_nip'=>'','program'=>'BOSP Reguler','note'=>'','recipients'=>[['account'=>'','name'=>'','bank'=>'BJB','amount'=>'','note'=>''],['account'=>'','name'=>'','bank'=>'BJB','amount'=>'','note'=>''],['account'=>'','name'=>'','bank'=>'BJB','amount'=>'','note'=>'']]];
+$data=$_SESSION['spj_si_data']??$default;$errors=[];$saved=false;
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ if(!hash_equals((string)$_SESSION['spj_csrf'],(string)($_POST['csrf']??'')))$errors[]='Sesi formulir berakhir. Muat ulang halaman.';
+ else{
+  $action=(string)($_POST['action']??'preview');
+  if($action==='reset'){unset($_SESSION['spj_si_data']);$data=$default;$saved=true;}
+  else{
+   foreach(['school','address','npsn','email','number','subject','attachment','bank_destination','debit_account','debit_name','place','date','month','year','head_name','head_nip','treasurer_name','treasurer_nip','program','note'] as $key)$data[$key]=si_s($_POST[$key]??'', $key==='address'?400:255);
+   $rawRecipients=$_POST['recipients']??[];$data['recipients']=[];
+   if(!is_array($rawRecipients))$rawRecipients=[];
+   foreach(array_slice($rawRecipients,0,100) as $row){
+    if(!is_array($row))continue;
+    $rec=['account'=>si_s($row['account']??'',100),'name'=>si_s($row['name']??'',180),'bank'=>si_s($row['bank']??'',100),'amount'=>str_replace([',',' '],['',''],si_s($row['amount']??'',40)),'note'=>si_s($row['note']??'',255)];
+    if($rec['account']===''&&$rec['name']===''&&$rec['amount']===''&&$rec['note']==='')continue;
+    if($rec['name']===''||$rec['account']===''||!is_numeric($rec['amount'])||(float)$rec['amount']<0){$errors[]='Setiap penerima harus memiliki nama, nomor rekening, dan nominal tidak negatif.';break;}
+    $data['recipients'][]=$rec;
+   }
+   if(!$data['recipients'])$errors[]='Tambahkan sekurang-kurangnya satu penerima transfer.';
+   if($data['school']===''||$data['number']===''||$data['debit_account']===''||$data['debit_name']===''||$data['head_name']===''||$data['treasurer_name']==='')$errors[]='Lengkapi identitas sekolah, nomor surat, rekening sumber, nama pemilik rekening, kepala sekolah, dan bendahara.';
+   if(!$errors){$_SESSION['spj_si_data']=$data;$saved=true;}
+  }
+ }
+}
+$total=0.0;foreach($data['recipients'] as $r)$total+=(float)($r['amount']??0);
+$bulanNama=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+if($data['month']===''&&$data['date']==='')$data['month']=$bulanNama[(int)date('n')];
+require __DIR__.'/../../includes/header.php';
+?>
+<style>
+.si-wrap{max-width:1150px;margin:auto}.si-panel{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:18px;margin-bottom:16px}.si-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.si-field label{display:block;font-size:13px;margin-bottom:5px}.si-field input,.si-field textarea,.si-field select{width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--border,#d1d5db);border-radius:8px;background:var(--card,#fff);color:inherit}.si-field textarea{min-height:62px}.si-btn{border:0;border-radius:8px;padding:10px 14px;background:var(--primary,#2563eb);color:#fff;cursor:pointer}.si-btn.secondary{background:#64748b}.si-alert{padding:12px;border-radius:8px;background:#fef2f2;color:#991b1b;margin-bottom:10px}.si-recipients{width:100%;border-collapse:collapse}.si-recipients th,.si-recipients td{border:1px solid #555;padding:6px;font-size:12px}.si-recipients input{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px}.si-preview{background:white;color:#111;padding:28px;border:1px solid #ddd;max-width:850px;margin:20px auto;font-family:'Times New Roman',serif;font-size:12pt;line-height:1.35}.si-preview h2,.si-preview h3{text-align:center;margin:0}.si-preview .center{text-align:center}.si-preview .letter-table{margin-left:20px}.si-preview .letter-table td{padding:2px 5px;vertical-align:top}.si-preview .signatures{width:100%;margin-top:28px;text-align:center;border-collapse:collapse}.si-preview .signatures td{width:50%;vertical-align:top;height:95px}.si-preview .annex{page-break-before:always;margin-top:35px}.si-preview .recipient-print{width:100%;border-collapse:collapse;margin-top:15px}.si-preview .recipient-print th,.si-preview .recipient-print td{border:1px solid #222;padding:6px;font-size:10pt}.si-preview .right{text-align:right}.si-preview .center{text-align:center}@media(max-width:700px){.si-grid{grid-template-columns:1fr}.si-preview{padding:12px;font-size:11pt;overflow-wrap:anywhere}}@media print{body{background:#fff!important}.sidebar,.topbar,.page-header,.si-editor,.si-alert,.app-header,.app-sidebar,footer{display:none!important}.main-content{margin:0!important;padding:0!important}.si-wrap{max-width:none}.si-panel{border:0;padding:0;margin:0}.si-preview{border:0;margin:0;padding:0;max-width:none;box-shadow:none;font-size:11pt}.si-preview .annex{break-before:page;page-break-before:always}}
+</style>
+<main class="main-content"><div class="si-wrap">
+<div class="page-header"><div><h1>Standing Instruction (SI)</h1><p class="muted">Isi data surat dan penerima. Pratinjau tidak mengubah data SPJ; data SI disimpan sementara di sesi akun ini.</p></div><button class="si-btn" type="button" onclick="window.print()">Cetak / Simpan PDF</button></div>
+<?php foreach($errors as $e): ?><div class="si-alert"><?= h($e) ?></div><?php endforeach; ?><?php if($saved): ?><div class="si-alert" style="background:#ecfdf5;color:#065f46"><?= isset($_POST['action'])&&$_POST['action']==='reset'?'Formulir dikosongkan.':'Pratinjau SI diperbarui. Periksa semua data sebelum mencetak.' ?></div><?php endif; ?>
+<div class="si-panel si-editor"><h2>Data surat</h2><form method="post" id="siForm"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>">
+<div class="si-grid">
+<?php $fields=[['school','Nama sekolah'],['address','Alamat sekolah'],['npsn','NPSN'],['email','Email sekolah'],['number','Nomor surat'],['subject','Perihal'],['attachment','Lampiran'],['bank_destination','Kepada / bank tujuan'],['debit_account','Rekening sumber / debit'],['debit_name','Nama pemilik rekening sumber'],['place','Tempat surat'],['date','Tanggal surat (teks, opsional)'],['month','Bulan'],['year','Tahun'],['head_name','Nama kepala sekolah'],['head_nip','NIP kepala sekolah'],['treasurer_name','Nama bendahara'],['treasurer_nip','NIP bendahara'],['program','Sumber dana / program'],['note','Catatan tambahan']];
+foreach($fields as [$key,$label]): ?><div class="si-field"><label><?= h($label) ?></label><?php if(in_array($key,['address','note'],true)): ?><textarea name="<?= h($key) ?>"><?= h($data[$key]) ?></textarea><?php else: ?><input name="<?= h($key) ?>" value="<?= h($data[$key]) ?>" <?= in_array($key,['school','number','debit_account','debit_name','head_name','treasurer_name'],true)?'required':'' ?>><?php endif; ?></div><?php endforeach; ?>
+</div><h2 style="margin-top:22px">Daftar penerima transfer (lampiran)</h2><p class="muted">Nomor rekening, nama, bank, nominal, dan keterangan dapat diubah untuk SI ini. Kosongkan baris yang tidak dipakai.</p>
+<div style="overflow:auto"><table class="si-recipients"><thead><tr><th>No.</th><th>Nomor rekening / VA</th><th>Nama penerima</th><th>Bank</th><th>Nominal (angka)</th><th>Keterangan</th><th></th></tr></thead><tbody id="recipientRows">
+<?php foreach($data['recipients'] as $i=>$r): ?><tr><td class="row-number"><?= $i+1 ?></td><?php foreach(['account'=>'Rekening','name'=>'Nama','bank'=>'Bank','amount'=>'Nominal','note'=>'Keterangan'] as $key=>$label): ?><td><input name="recipients[<?= $i ?>][<?= h($key) ?>]" value="<?= h($r[$key]??'') ?>" placeholder="<?= h($label) ?>" <?= in_array($key,['account','name','amount'],true)?'required':'' ?>></td><?php endforeach; ?><td><button type="button" class="si-btn secondary remove-row">Hapus</button></td></tr><?php endforeach; ?>
+</tbody></table></div><p style="margin-top:12px"><button type="button" class="si-btn secondary" id="addRecipient">+ Tambah penerima</button> <button class="si-btn" name="action" value="preview">Perbarui pratinjau</button> <button class="si-btn secondary" name="action" value="reset" formnovalidate onclick="return confirm('Kosongkan data SI di sesi ini?')">Kosongkan</button></p>
+</form></div>
+<div class="si-panel"><h2>Pratinjau cetak</h2><p class="muted">Format mengikuti struktur contoh SI: surat utama di halaman pertama dan daftar transfer pada lampiran berikutnya. Periksa tanggal, nomor surat, rekening, dan total sebelum digunakan.</p>
+<div class="si-preview" id="siPrint">
+<div class="center"><h3>PEMERINTAH KABUPATEN BOGOR</h3><h3>DINAS PENDIDIKAN</h3><h3><?= h($data['school']) ?></h3><div><?= h($data['address']) ?></div><div>NPSN: <?= h($data['npsn']) ?><?= $data['email']!==''?' · Email: '.h($data['email']):'' ?></div><hr style="border:0;border-top:2px solid #111;margin-top:10px"><h2 style="margin-top:10px">STANDING INSTRUCTION</h2></div>
+<table class="letter-table"><tr><td>Nomor</td><td>:</td><td><?= h($data['number']) ?></td><td style="width:35px"></td><td>Kepada Yth.</td></tr><tr><td>Perihal</td><td>:</td><td><?= h($data['subject']) ?></td><td></td><td rowspan="2"><?= nl2br(h($data['bank_destination'])) ?></td></tr><tr><td>Lampiran</td><td>:</td><td><?= h($data['attachment']) ?></td></tr></table>
+<p>Dengan hormat,</p><p>Yang bertanda tangan di bawah ini:</p><table class="letter-table"><tr><td>1.</td><td>Nama</td><td>:</td><td><?= h($data['head_name']) ?></td></tr><tr><td></td><td>Jabatan</td><td>:</td><td>Kepala Sekolah</td></tr><?php if($data['head_nip']!==''): ?><tr><td></td><td>NIP</td><td>:</td><td><?= h($data['head_nip']) ?></td></tr><?php endif; ?><tr><td>2.</td><td>Nama</td><td>:</td><td><?= h($data['treasurer_name']) ?></td></tr><tr><td></td><td>Jabatan</td><td>:</td><td>Bendahara Sekolah</td></tr><?php if($data['treasurer_nip']!==''): ?><tr><td></td><td>NIP</td><td>:</td><td><?= h($data['treasurer_nip']) ?></td></tr><?php endif; ?></table>
+<p>Dengan ini menginstruksikan kepada <?= h($data['bank_destination']) ?> untuk mendebet rekening <strong><?= h($data['debit_account']) ?></strong> atas nama <strong><?= h($data['debit_name']) ?></strong> dan melakukan pemindahbukuan kepada penerima sesuai daftar pada lampiran.</p>
+<p>Dengan adanya Standing Instruction ini, maka:</p><ol><li>Bank dibebaskan dari segala akibat yang mungkin timbul dari pelaksanaan pemindahbukuan berdasarkan instruksi ini.</li><li>Kami meyakini kebenaran data dan informasi pada Standing Instruction ini.</li></ol>
+<?php if($data['note']!==''): ?><p><?= nl2br(h($data['note'])) ?></p><?php endif; ?><p>Demikian surat ini dibuat untuk dipergunakan sebagaimana mestinya.</p>
+<p class="right"><?= h($data['place']) ?>, <?= h($data['date']!==''?$data['date']:trim($data['month'].' '.$data['year'])) ?></p>
+<table class="signatures"><tr><td>Kepala Sekolah<br><?= h($data['school']) ?><br><br><br><br><strong><u><?= h($data['head_name']) ?></u></strong><br><?= $data['head_nip']!==''?'NIP. '.h($data['head_nip']):'' ?></td><td>Bendahara BOS<br><br><br><br><br><strong><u><?= h($data['treasurer_name']) ?></u></strong><br><?= $data['treasurer_nip']!==''?'NIP. '.h($data['treasurer_nip']):'' ?></td></tr></table>
+<div class="annex"><h3>LAMPIRAN: DAFTAR TRANSFER</h3><p>Nomor SI: <?= h($data['number']) ?> · Program: <?= h($data['program']) ?></p><table class="recipient-print"><thead><tr><th>No.</th><th>Nomor Rekening / VA</th><th>Nama</th><th>Bank</th><th>Nominal</th><th>Keterangan</th></tr></thead><tbody>
+<?php foreach($data['recipients'] as $i=>$r): ?><tr><td class="center"><?= $i+1 ?></td><td><?= h($r['account']) ?></td><td><?= h($r['name']) ?></td><td><?= h($r['bank']) ?></td><td class="right"><?= si_rp((float)$r['amount']) ?></td><td><?= h($r['note']) ?></td></tr><?php endforeach; ?>
+<tr><th colspan="4">JUMLAH</th><th class="right"><?= si_rp($total) ?></th><td><?= h(ucfirst(si_terbilang((int)round($total))).' rupiah') ?></td></tr></tbody></table>
+<table class="signatures"><tr><td>Kepala Sekolah<br><?= h($data['school']) ?><br><br><br><br><strong><u><?= h($data['head_name']) ?></u></strong><br><?= $data['head_nip']!==''?'NIP. '.h($data['head_nip']):'' ?></td><td>Bendahara BOS<br><br><br><br><br><strong><u><?= h($data['treasurer_name']) ?></u></strong><br><?= $data['treasurer_nip']!==''?'NIP. '.h($data['treasurer_nip']):'' ?></td></tr></table></div>
+</div></div></div></main>
+<script>
+(function(){
+ const tbody=document.getElementById('recipientRows'),add=document.getElementById('addRecipient');
+ function renumber(){[...tbody.querySelectorAll('tr')].forEach((tr,i)=>{tr.querySelector('.row-number').textContent=i+1;tr.querySelectorAll('input').forEach(inp=>{inp.name=inp.name.replace(/recipients\[\d+\]/,'recipients['+i+']');if(inp.name.endsWith('[bank]')&&!inp.value)inp.value='BJB';});});}
+ add.addEventListener('click',()=>{if(tbody.querySelectorAll('tr').length>=100){alert('Maksimal 100 penerima.');return;}const i=tbody.querySelectorAll('tr').length;const tr=document.createElement('tr');tr.innerHTML='<td class="row-number">'+(i+1)+'</td><td><input name="recipients['+i+'][account]" placeholder="Nomor rekening / VA" required></td><td><input name="recipients['+i+'][name]" placeholder="Nama penerima" required></td><td><input name="recipients['+i+'][bank]" value="BJB" placeholder="Bank"></td><td><input name="recipients['+i+'][amount]" placeholder="Nominal" inputmode="decimal" required></td><td><input name="recipients['+i+'][note]" placeholder="Keterangan"></td><td><button type="button" class="si-btn secondary remove-row">Hapus</button></td>';tbody.appendChild(tr);});
+ tbody.addEventListener('click',e=>{if(e.target.classList.contains('remove-row')){e.target.closest('tr').remove();renumber();}});
+})();
+</script>
+<?php require __DIR__.'/../../includes/footer.php'; ?>
