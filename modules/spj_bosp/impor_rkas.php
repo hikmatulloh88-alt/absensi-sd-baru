@@ -7,21 +7,7 @@ $errors = [];
 $ok = '';
 if (empty($_SESSION['spj_csrf'])) $_SESSION['spj_csrf'] = bin2hex(random_bytes(32));
 if (!isset($_SESSION['spj_rkas_preview'])) $_SESSION['spj_rkas_preview'] = null;
-function rkas_money($raw): ?float {
-  $v = trim((string)$raw);
-  if ($v === '') return null;
-  $v = str_replace(['Rp','rp',' ',"\t"], '', $v);
-  if (str_contains($v, ',') && str_contains($v, '.')) {
-    if (strrpos($v, ',') > strrpos($v, '.')) $v = str_replace(',', '.', str_replace('.', '', $v));
-    else $v = str_replace(',', '', $v);
-  } elseif (str_contains($v, ',')) { if (preg_match('/^\d{1,3}(,\d{3})+$/', $v)) $v = str_replace(',', '', $v); else $v = str_replace(',', '.', $v); }
-  elseif (preg_match('/^\d{1,3}(\.\d{3})+$/', $v)) $v = str_replace('.', '', $v);
-  return is_numeric($v) && is_finite((float)$v) && (float)$v >= 0 ? (float)$v : null;
-}
-function rkas_norm(string $s): string {
-  $s = strtolower(trim(preg_replace('/\x{FEFF}/u', '', $s) ?? $s));
-  return preg_replace('/[^a-z0-9]+/', '', $s) ?? $s;
-}
+require_once __DIR__ . '/lib_spj_rkas.php';
 $ready = false;
 try { $pdo->query("SELECT 1 FROM spj_rkas_import LIMIT 1"); $pdo->query("SELECT 1 FROM spj_rkas_kegiatan LIMIT 1"); $ready = true; } catch (Throwable $e) {}
 if (!$ready) $errors[] = 'Tabel anggaran belum tersedia. Jalankan migrasi database/spj_rencana_bulanan.sql di database uji setelah backup.';
