@@ -16,6 +16,16 @@ try {
 } catch (Throwable $e) { $setupWarning = true; }
 require __DIR__ . '/includes/header.php';
 ?>
+<?php if (($_SESSION['role'] ?? '') === 'siswa'): ?>
+<section class="welcome">
+  <div><span class="eyebrow">DASHBOARD SISWA</span><h2>Halo, <?= h($_SESSION['nama'] ?? 'Siswa') ?> 👋</h2><p>Selamat datang di portal siswa SDN Ciburayut 01.</p></div>
+  <div class="date-chip">📅 <?= h(date('d F Y')) ?></div>
+</section>
+<section class="panel activity-panel">
+  <div class="panel-heading"><div><h3>Selamat datang!</h3><p>Ini adalah halaman dashboard akun siswa.</p></div><span class="status-pill">SISWA</span></div>
+  <div class="tip-box"><strong>Informasi</strong><p>Gunakan menu di sebelah kiri untuk mengajukan izin atau sakit dan memperbarui nomor telepon pada profil. Dashboard ini tidak menampilkan menu cepat.</p></div>
+</section>
+<?php else: ?>
 <section class="welcome">
   <div><span class="eyebrow">PUSAT KENDALI SEKOLAH</span><h2>Selamat datang, Admin 👋</h2><p>Ringkasan aktivitas ABSENSI SDN CIBURAYUT 01 hari ini.</p></div>
   <div class="date-chip">📅 <?= h(date('d F Y')) ?></div>
@@ -35,4 +45,5 @@ require __DIR__ . '/includes/header.php';
 <section class="panel activity-panel"><div class="panel-heading"><div><h3>Rencana pengembangan</h3><p>Urutan kerja yang aman untuk aplikasi sekolah.</p></div><span class="tag">VERSI LOKAL 1.0</span></div>
   <div class="roadmap"><div class="roadmap-step active"><span>01</span><div><strong>Fondasi dan dashboard</strong><small>Struktur proyek, konfigurasi, dan tampilan utama</small></div><em>Starter</em></div><div class="roadmap-step"><span>02</span><div><strong>Data guru dan siswa</strong><small>CRUD, pencarian, rombel, dan validasi</small></div><em>Berikutnya</em></div><div class="roadmap-step"><span>03</span><div><strong>Absensi dan laporan</strong><small>Input kehadiran, filter tanggal, ekspor/cetak</small></div><em>Berikutnya</em></div></div>
 </section>
+<?php endif; ?>
 <?php require __DIR__ . '/includes/footer.php'; ?>
