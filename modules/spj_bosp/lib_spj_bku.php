@@ -28,3 +28,15 @@ function bku_money($raw): ?float
     }
     return is_numeric($v) && is_finite((float) $v) && (float) $v >= 0 ? (float) $v : null;
 }
+
+/** Classify a BKU row without treating tax movements as ordinary spending. */
+function bku_classify(string $description, string $activity, float $outgoing, float $incoming): string
+{
+    $text = strtolower($description . ' ' . $activity);
+    if (preg_match('/saldo awal|saldo sebelumnya|saldo akhir|saldo dibawa|saldo kas awal/i', $text)) return 'SALDO';
+    if (preg_match('/terima\s*(pph|ppn)|penerimaan\s*(pph|ppn)|pemungutan\s*(pph|ppn)/i', $text)) return 'PENERIMAAN_PAJAK';
+    if (preg_match('/setor\s*(pph|ppn)|setoran\s*(pph|ppn)|penyetoran\s*(pph|ppn)/i', $text)) return 'SETOR_PAJAK';
+    if ($outgoing <= 0 && $incoming > 0) return 'PENERIMAAN';
+    if ($outgoing <= 0) return 'LAINNYA';
+    return 'PENGELUARAN';
+}
