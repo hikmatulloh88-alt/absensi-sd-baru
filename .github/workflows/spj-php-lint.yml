@@ -14,6 +14,7 @@ on:
   push:
     branches: [feat/spj-bosp-kinerja]
     paths:
+      - 'tests/**'
       - 'modules/spj_bosp/**'
       - 'modules/spj_bos_kinerja/**'
       - 'database/spj_rencana_bulanan.sql'
