@@ -45,8 +45,8 @@ function navActive(string $needle): string { global $uri; return str_contains($u
         <a class="nav-sublink<?= navActive('/modules/guru/') ?>" href="<?= h($basePath) ?>/modules/guru/index.php"><span>🎓</span>Guru</a>
         <a class="nav-sublink<?= navActive('/modules/profil_guru/') ?>" href="<?= h($basePath) ?>/modules/profil_guru/index.php"><span>👤</span>Profil Guru</a>
         <a class="nav-sublink<?= navActive('/modules/administrasi_guru/') ?>" href="<?= h($basePath) ?>/modules/administrasi_guru/index.php"><span>📚</span>Administrasi Guru</a>
-        <span class="nav-sublink nav-unavailable"><span>🎓</span>Tendik <small>Belum tersedia</small></span>
-        <span class="nav-sublink nav-unavailable"><span>🎓</span><em>GTK Non-Aktif</em> <small>Belum tersedia</small></span>
+        <a class="nav-sublink<?= navActive('/modules/tendik/') ?>" href="<?= h($basePath) ?>/modules/tendik/index.php"><span>🎓</span>Tendik</a>
+        <a class="nav-sublink<?= navActive('/modules/gtk_nonaktif/') ?>" href="<?= h($basePath) ?>/modules/gtk_nonaktif/index.php"><span>📋</span>GTK Non-Aktif</a>
       </div>
     </div>
 
@@ -56,7 +56,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
       </button>
       <div class="nav-submenu<?= str_contains($uri, '/modules/siswa/') ? ' expanded' : '' ?>" id="nav-siswa">
         <a class="nav-sublink<?= navActive('/modules/siswa/') ?>" href="<?= h($basePath) ?>/modules/siswa/index.php"><span>☻</span>Peserta Didik</a>
-        <span class="nav-sublink nav-unavailable"><span>☻</span><em>PD Keluar</em> <small>Belum tersedia</small></span>
+        <a class="nav-sublink<?= navActive('/modules/pd_keluar/') ?>" href="<?= h($basePath) ?>/modules/pd_keluar/index.php"><span>📋</span>PD Keluar</a>
       </div>
     </div>
 
