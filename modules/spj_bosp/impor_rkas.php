@@ -128,6 +128,7 @@ require __DIR__ . '/../../includes/header.php';
 <?php if($ok): ?><div class="rkas-ok"><?= h($ok) ?></div><?php endif; ?>
 <div class="rkas-panel"><h2 style="margin-top:0">1. Pilih file RKAS</h2>
 <p class="rkas-muted">Buat CSV dengan header <code>kode_kegiatan,kode_rekening,uraian,jenis_belanja,pagu</code>. Kolom wajib: <code>uraian</code> dan <code>pagu</code>. Jenis belanja dapat berisi Operasi, Modal, atau Lainnya. File maksimal 2 MB dan 5.000 kegiatan.</p>
+<p><a class="rkas-btn" style="background:#64748b" href="<?= h($basePath) ?>/templates/template_import_rkas.csv" download>Unduh template CSV kosong</a></p>
 <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="preview">
 <div class="rkas-grid"><div class="rkas-field"><label>Tahun anggaran</label><input type="number" name="tahun" min="2000" max="2100" value="<?= h($preview['year']??date('Y')) ?>" required></div>
 <div class="rkas-field"><label>Sumber dana</label><select name="sumber"><option value="BOSP" <?= (($preview['source']??'BOSP')==='BOSP')?'selected':'' ?>>BOSP Reguler</option><option value="BOS_KINERJA" <?= (($preview['source']??'')==='BOS_KINERJA')?'selected':'' ?>>BOS Kinerja</option></select></div>
