@@ -40,8 +40,12 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
       } else {
         try {
           $pdo->beginTransaction();
-          $q = $pdo->prepare("SELECT id FROM spj_rkas_import WHERE tahun_anggaran=? AND sumber_dana=? AND status='aktif' ORDER BY id DESC LIMIT 1 FOR UPDATE");
-          $q->execute([$year,$source]); $importId = $q->fetchColumn();
+          $q = $pdo->prepare("SELECT id,nama_dokumen,checksum_sha256 FROM spj_rkas_import WHERE tahun_anggaran=? AND sumber_dana=? AND status='aktif' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+          $q->execute([$year,$source]); $activeImport = $q->fetch();
+          $importId = $activeImport ? (int)$activeImport['id'] : 0;
+          if ($activeImport && (!empty($activeImport['checksum_sha256']) || $activeImport['nama_dokumen'] !== 'Input manual awal')) {
+            throw new RuntimeException('RKAS resmi yang diimpor tidak boleh diubah dengan tambah kegiatan manual. Perbarui file RKAS melalui menu Impor RKAS agar pagu resmi tetap konsisten.');
+          }
           if (!$importId) {
             $q = $pdo->prepare("INSERT INTO spj_rkas_import (tahun_anggaran,sumber_dana,nama_dokumen,status) VALUES (?,?,?,'aktif')");
             $q->execute([$year,$source,'Input manual awal']); $importId = (int)$pdo->lastInsertId();
@@ -53,7 +57,7 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
           $q->execute([$importId,$code,$account,$desc,$kind,$budget]);
           $pdo->prepare("UPDATE spj_rkas_import SET total_pagu=? WHERE id=?")->execute([$total+(float)$budget,$importId]);
           $pdo->commit(); $ok = 'Kegiatan anggaran tersimpan.';
-        } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); $errors[] = 'Gagal menyimpan kegiatan. Periksa struktur database dan data yang dimasukkan.'; }
+        } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); $errors[] = $e instanceof RuntimeException ? $e->getMessage() : 'Gagal menyimpan kegiatan. Periksa struktur database dan data yang dimasukkan.'; }
       }
     } elseif ($action === 'save_plan') {
       $ids = $_POST['kegiatan_id'] ?? []; $amounts = $_POST['nominal'] ?? [];
@@ -111,7 +115,7 @@ require __DIR__ . '/../../includes/header.php';
 <div class="spj-field" style="display:flex;align-items:end"><button class="spj-btn" type="submit">Tampilkan</button></div>
 </div></form></div>
 <?php if ($ready): ?>
-<div class="spj-panel"><h2 style="margin-top:0">Tambah kegiatan pagu tahunan</h2><p class="spj-muted">Input manual sementara. Impor otomatis dari file RKAS/ARKAS akan dibuat pada tahap berikutnya.</p>
+<div class="spj-panel"><h2 style="margin-top:0">Tambah kegiatan pagu tahunan</h2><p class="spj-muted">Input manual hanya untuk pagu awal yang belum diimpor. RKAS resmi yang sudah diimpor dikunci agar total pagu tidak berubah tanpa versi baru.</p>
 <form method="post"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="add_activity"><input type="hidden" name="tahun" value="<?= h($year) ?>"><input type="hidden" name="bulan" value="<?= h($month) ?>"><input type="hidden" name="sumber" value="<?= h($source) ?>">
 <div class="spj-grid">
 <div class="spj-field"><label>Kode kegiatan</label><input name="kode_kegiatan" maxlength="80" placeholder="Opsional"></div>
