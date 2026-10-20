@@ -45,6 +45,24 @@ foreach ($classificationCases as [$description, $activity, $out, $in, $expected]
 }
 echo 'BKU classification tests passed: ' . count($classificationCases) . ' cases.' . PHP_EOL;
 
+$duplicateRow = ['tanggal'=>'2026-02-10','nomor'=>'BKU-001','uraian'=>'Terima PPh Pasal 21','jenis'=>'PENERIMAAN_PAJAK','masuk'=>500.0,'keluar'=>0.0];
+if (bku_row_key('BOSP', $duplicateRow) !== bku_row_key('BOSP', $duplicateRow)) {
+    fwrite(STDERR, "FAIL identical BKU rows must have identical fingerprints" . PHP_EOL);
+    exit(1);
+}
+$differentKind = $duplicateRow;
+$differentKind['jenis'] = 'PENGELUARAN';
+if (bku_row_key('BOSP', $duplicateRow) === bku_row_key('BOSP', $differentKind)) {
+    fwrite(STDERR, "FAIL different BKU categories must have different fingerprints" . PHP_EOL);
+    exit(1);
+}
+$differentSource = bku_row_key('BOS_KINERJA', $duplicateRow);
+if (bku_row_key('BOSP', $duplicateRow) === $differentSource) {
+    fwrite(STDERR, "FAIL different funding sources must have different fingerprints" . PHP_EOL);
+    exit(1);
+}
+echo "BKU duplicate fingerprint tests passed: 3 checks." . PHP_EOL;
+
 $rkasCases = [
     ['Rp 1.234.567', 1234567.0],
     ['1,234,567', 1234567.0],
