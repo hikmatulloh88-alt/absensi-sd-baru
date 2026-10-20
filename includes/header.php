@@ -93,6 +93,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/impor_bku.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/impor_bku.php"><span>📄</span>Impor BKU</a>
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/pemetaan_rkas.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/pemetaan_rkas.php"><span>🔗</span>Pemetaan Realisasi RKAS</a>
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/laporan_realisasi.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/laporan_realisasi.php"><span>📊</span>Laporan Realisasi SPJ</a>
+        <a class="nav-sublink<?= navActive('/modules/spj_bosp/standing_instruction.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/standing_instruction.php"><span>📝</span>Standing Instruction (SI)</a>
       </div>
     </div>
     <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
