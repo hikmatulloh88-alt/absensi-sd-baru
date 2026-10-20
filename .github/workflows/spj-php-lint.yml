@@ -1,0 +1,33 @@
+name: SPJ PHP Syntax Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'modules/spj_bosp/**'
+      - 'modules/spj_bos_kinerja/**'
+      - '.github/workflows/spj-php-lint.yml'
+  push:
+    branches: [feat/spj-bosp-kinerja]
+    paths:
+      - 'modules/spj_bosp/**'
+      - 'modules/spj_bos_kinerja/**'
+      - '.github/workflows/spj-php-lint.yml'
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+      - name: Check SPJ PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find modules/spj_bosp modules/spj_bos_kinerja -type f -name '*.php' -print0 |
+            xargs -0 -r -n1 php -l
