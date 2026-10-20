@@ -99,6 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
             $q=$pdo->prepare("SELECT COUNT(*) FROM spj_rkas_kegiatan k JOIN spj_rencana_bulanan r ON r.kegiatan_id=k.id WHERE k.import_id IN ($marks) AND r.status='aktif'");
             $q->execute($oldIds);
             if ((int)$q->fetchColumn()>0) throw new RuntimeException('Pagu aktif sudah dipakai rencana bulanan. Versi baru tidak boleh menggantinya sebelum rencana ditinjau.');
+            $q=$pdo->prepare("SELECT COUNT(*) FROM spj_transaksi_rkas m JOIN spj_rkas_kegiatan k ON k.id=m.kegiatan_id WHERE k.import_id IN ($marks)");
+            $q->execute($oldIds);
+            if ((int)$q->fetchColumn()>0) throw new RuntimeException('RKAS aktif sudah dipakai pemetaan transaksi. Tinjau/pindahkan pemetaan ke versi baru sebelum mengganti RKAS.');
           }
           $q=$pdo->prepare("INSERT INTO spj_rkas_import (tahun_anggaran,sumber_dana,nama_dokumen,checksum_sha256,status,total_pagu,created_by,activated_at) VALUES (?,?,?,?,'draft',?, ?,NULL)");
           $q->execute([$preview['year'],$preview['source'],$preview['filename'],$preview['checksum'],$preview['total'],$_SESSION['akun_id']??null]);
