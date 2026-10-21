@@ -175,3 +175,26 @@ foreach ($siAmountCases as [$input, $expected]) {
     }
 }
 echo 'SI amount validation tests passed: ' . count($siAmountCases) . ' cases.' . PHP_EOL;
+
+$siTotalCases = [
+    [[ 'amount' => '100' ], true],
+    [[ 'amount' => '999999999999999' ], true],
+    [[ 'amount' => '1000000000000000' ], false],
+];
+foreach ($siTotalCases as [$recipient, $expected]) {
+    $actual = si_total_supported([$recipient]);
+    if ($actual !== $expected) {
+        fwrite(STDERR, 'FAIL si_total_supported: got ' . var_export($actual, true) . ', expected ' . var_export($expected, true) . PHP_EOL);
+        exit(1);
+    }
+}
+if (si_total_supported([['amount' => '600000000000000'], ['amount' => '500000000000000']])) {
+    fwrite(STDERR, "FAIL SI total must reject a sum above 15 digits.\n");
+    exit(1);
+}
+if (si_total_supported([['amount' => 'invalid']])) {
+    fwrite(STDERR, "FAIL SI total must reject invalid recipient amounts.\n");
+    exit(1);
+}
+echo "SI total validation tests passed: 5 checks.\n";
+
