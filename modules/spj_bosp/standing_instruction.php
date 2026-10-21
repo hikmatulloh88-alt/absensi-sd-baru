@@ -28,7 +28,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    }
    if(!$data['recipients'])$errors[]='Tambahkan sekurang-kurangnya satu penerima transfer.';
    if($data['recipients'] && !si_total_supported($data['recipients']))$errors[]='Total SI melebihi batas 15 digit atau format nominal tidak valid. Periksa nominal setiap penerima.';
-   if($data['school']==='||$data['number']===''||$data['debit_account']===''||$data['debit_name']===''||$data['head_name']===''||$data['treasurer_name']==='')$errors[]='Lengkapi identitas sekolah, nomor surat, rekening sumber, nama pemilik rekening, kepala sekolah, dan bendahara.';
+   if($data['school']===''||$data['number']===''||$data['debit_account']===''||$data['debit_name']===''||$data['head_name']===''||$data['treasurer_name']==='')$errors[]='Lengkapi identitas sekolah, nomor surat, rekening sumber, nama pemilik rekening, kepala sekolah, dan bendahara.';
    if(!$errors){$_SESSION['spj_si_data']=$data;$saved=true;}
   }
  }
