@@ -15,6 +15,24 @@ function si_parse_amount(string $raw): ?string {
 }
 }
 
+
+if (!function_exists('si_total_supported')) {
+/**
+ * SI menyebut total dalam kata-kata. Batasi ke 15 digit agar total
+ * tidak jatuh ke fallback angka mentah pada si_terbilang().
+ */
+function si_total_supported(array $recipients): bool {
+ $total = 0;
+ foreach ($recipients as $recipient) {
+  $amount = (string)($recipient['amount'] ?? '');
+  if (preg_match('/^[0-9]{1,15}$/', $amount) !== 1) return false;
+  $total += (int)$amount;
+  if ($total > 999999999999999) return false;
+ }
+ return true;
+}
+}
+
 if (!function_exists('si_terbilang')) {
 function si_terbilang(int $n): string {
  if($n===0)return 'nol';
