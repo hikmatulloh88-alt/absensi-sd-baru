@@ -20,12 +20,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
       $year = filter_var($_POST['tahun'] ?? null, FILTER_VALIDATE_INT);
       $source = (string)($_POST['sumber'] ?? '');
       if (!$year || $year < 2000 || $year > 2100 || !in_array($source, ['BOSP','BOS_KINERJA'], true)) $errors[] = 'Tahun dan sumber dana tidak valid.';
-      elseif (!isset($_FILES['file_rkas']) || $_FILES['file_rkas']['error'] !== UPLOAD_ERR_OK) $errors[] = 'Pilih file CSV yang valid.';
-      elseif ($_FILES['file_rkas']['size'] < 1 || $_FILES['file_rkas']['size'] > 2*1024*1024) $errors[] = 'File harus berukuran maksimal 2 MB.';
+      elseif (!isset($_FILES['file_rkas']) || $_FILES['file_rkas']['error'] !== UPLOAD_ERR_OK) $errors[] = 'Pilih file PDF RKAS berbasis teks atau CSV yang valid.';
+      elseif ($_FILES['file_rkas']['size'] < 1 || $_FILES['file_rkas']['size'] > 10*1024*1024) $errors[] = 'File harus berukuran maksimal 10 MB.';
       else {
         $tmp = $_FILES['file_rkas']['tmp_name'];
         $raw = file_get_contents($tmp);
-        if ($raw === false || str_contains($raw, "\0")) $errors[] = 'File tidak terbaca sebagai CSV teks.';
+        $originalName = (string)($_FILES['file_rkas']['name'] ?? '');
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $pdfError = '';
+        $convertedTmp = null;
+        if ($raw !== false && $extension === 'pdf') {
+          try {
+            $csvText = rkas_pdf_to_csv($tmp, $source);
+            $convertedTmp = tempnam(sys_get_temp_dir(), 'rkas_csv_');
+            if ($convertedTmp === false || file_put_contents($convertedTmp, $csvText) === false) throw new RuntimeException('Gagal menyiapkan file hasil ekstraksi PDF.');
+            $tmp = $convertedTmp;
+          } catch (Throwable $e) {
+            $pdfError = $e->getMessage();
+            $raw = false;
+          }
+        } elseif ($extension !== 'csv') {
+          $pdfError = 'Format file harus PDF teks atau CSV.';
+          $raw = false;
+        }
+        if ($raw === false || ($extension === 'csv' && str_contains($raw, "\0"))) $errors[] = $pdfError !== '' ? $pdfError : 'File tidak terbaca sebagai CSV teks.';
         else {
           $checksum = hash('sha256', $raw);
           $fh = fopen($tmp, 'rb');
@@ -60,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
               if (count($rows)>5000) { $bad[]='Maksimal 5.000 baris per file.'; break; }
             }
             if ($fh) fclose($fh);
+            if ($convertedTmp !== null && is_file($convertedTmp)) @unlink($convertedTmp);
             if ($bad) $errors = array_merge($errors, array_slice($bad,0,10));
             if (!$errors && !$rows) $errors[]='Tidak ada baris kegiatan valid dalam file.';
             if (!$errors) {
@@ -112,16 +131,16 @@ require __DIR__ . '/../../includes/header.php';
 .rkas-wrap{max-width:1180px;margin:auto}.rkas-panel{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:18px;margin:0 0 16px}.rkas-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.rkas-field label{display:block;font-size:13px;margin-bottom:6px;color:var(--text-muted,#64748b)}.rkas-field input,.rkas-field select{width:100%;padding:10px;border:1px solid var(--border,#d1d5db);border-radius:8px;background:var(--card,#fff);color:inherit}.rkas-btn{display:inline-block;border:0;border-radius:8px;padding:10px 14px;background:var(--primary,#2563eb);color:white;cursor:pointer;text-decoration:none}.rkas-table-wrap{overflow:auto}.rkas-table{width:100%;border-collapse:collapse;min-width:760px}.rkas-table th,.rkas-table td{padding:9px;border-bottom:1px solid var(--border,#e5e7eb);font-size:13px;text-align:left}.rkas-table th{background:var(--surface,#f8fafc)}.rkas-alert,.rkas-ok{padding:12px;border-radius:9px;margin:10px 0}.rkas-alert{background:#fef2f2;color:#991b1b}.rkas-ok{background:#ecfdf5;color:#065f46}.rkas-muted{font-size:13px;color:var(--text-muted,#64748b)}@media(max-width:700px){.rkas-grid{grid-template-columns:1fr}.rkas-panel{padding:12px}}
 </style>
 <div class="main-content"><div class="rkas-wrap">
-<div class="page-header"><div><h1>Impor Anggaran Tahunan</h1><p class="rkas-muted">CSV hasil ekspor/salinan Excel · pratinjau sebelum penyimpanan · tidak menimpa versi yang dipakai rencana aktif.</p></div></div>
+<div class="page-header"><div><h1>Impor Anggaran Tahunan</h1><p class="rkas-muted">Impor CSV atau PDF RKAS berbasis teks · pratinjau sebelum penyimpanan · versi aktif yang dipakai rencana tidak ditimpa sembarangan.</p></div></div>
 <?php foreach($errors as $e): ?><div class="rkas-alert"><?= h($e) ?></div><?php endforeach; ?>
 <?php if($ok): ?><div class="rkas-ok"><?= h($ok) ?></div><?php endif; ?>
 <div class="rkas-panel"><h2 style="margin-top:0">1. Pilih file RKAS</h2>
-<p class="rkas-muted">Buat CSV dengan header <code>kode_kegiatan,kode_rekening,uraian,jenis_belanja,pagu</code>. Kolom wajib: <code>uraian</code> dan <code>pagu</code>. Jenis belanja dapat berisi Operasi, Modal, atau Lainnya. File maksimal 2 MB dan 5.000 kegiatan.</p>
+<p class="rkas-muted">Untuk CSV, gunakan header <code>kode_kegiatan,kode_rekening,uraian,jenis_belanja,pagu</code> (kolom wajib: <code>uraian</code> dan <code>pagu</code>). PDF RKAS berbasis teks dibaca dari rincian bernomor agar subtotal tidak dihitung ganda. PDF hasil scan/gambar belum didukung. Maksimal 10 MB dan 5.000 kegiatan.</p>
 <p><a class="rkas-btn" style="background:#64748b" href="<?= h($basePath) ?>/templates/template_import_rkas.csv" download>Unduh template CSV kosong</a></p>
 <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="preview">
 <div class="rkas-grid"><div class="rkas-field"><label>Tahun anggaran</label><input type="number" name="tahun" min="2000" max="2100" value="<?= h($preview['year']??date('Y')) ?>" required></div>
 <div class="rkas-field"><label>Sumber dana</label><select name="sumber"><option value="BOSP" <?= (($preview['source']??'BOSP')==='BOSP')?'selected':'' ?>>BOSP Reguler</option><option value="BOS_KINERJA" <?= (($preview['source']??'')==='BOS_KINERJA')?'selected':'' ?>>BOS Kinerja</option></select></div>
-<div class="rkas-field"><label>File CSV</label><input type="file" name="file_rkas" accept=".csv,text/csv" required></div></div><p style="margin-bottom:0"><button class="rkas-btn" type="submit">Baca &amp; pratinjau</button></p></form></div>
+<div class="rkas-field"><label>File CSV</label><input type="file" name="file_rkas" accept=".csv,.pdf,text/csv,application/pdf" required></div></div><p style="margin-bottom:0"><button class="rkas-btn" type="submit">Baca &amp; pratinjau</button></p></form></div>
 <?php if(is_array($preview) && !empty($preview['rows'])): ?>
 <div class="rkas-panel"><h2 style="margin-top:0">2. Pratinjau sebelum simpan</h2>
 <p><strong><?= h($preview['filename']) ?></strong> · <?= count($preview['rows']) ?> kegiatan · Total pagu <strong>Rp <?= number_format((float)$preview['total'],0,',','.') ?></strong> · <?= h($preview['year']) ?> · <?= $preview['source']==='BOSP'?'BOSP Reguler':'BOS Kinerja' ?></p>
@@ -131,6 +150,6 @@ require __DIR__ . '/../../includes/header.php';
 <form method="post" style="margin-top:14px"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="commit"><label style="display:block;margin-bottom:12px"><input type="checkbox" name="confirm" value="yes" required> Saya sudah memeriksa tahun, sumber dana, daftar kegiatan, dan total pagu.</label><button class="rkas-btn" type="submit">Konfirmasi &amp; simpan RKAS</button></form>
 <form method="post" style="margin-top:8px"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="clear_preview"><button class="rkas-btn" style="background:#64748b" type="submit">Batalkan pratinjau</button></form></div>
 <?php endif; ?>
-<div class="rkas-panel"><h2 style="margin-top:0">Batas tahap ini</h2><p class="rkas-muted">Halaman ini menerima CSV, bukan PDF atau XLSX secara langsung. Ekspor Excel sebagai CSV UTF-8 terlebih dahulu. Belum ada OCR PDF atau rekonsiliasi BKU; angka yang diimpor harus diperiksa terhadap dokumen RKAS asli sebelum menjadi acuan resmi.</p><a class="rkas-btn" href="<?= h($basePath) ?>/modules/spj_bosp/rencana_bulanan.php">Buka Rencana Bulanan</a></div>
+<div class="rkas-panel"><h2 style="margin-top:0">Batas tahap ini</h2><p class="rkas-muted">PDF dibaca menggunakan utilitas <code>pdftotext</code> yang harus tersedia di server; PDF hasil scan/gambar memerlukan OCR dan belum didukung. CSV lama tetap tersedia. Belum ada rekonsiliasi BKU otomatis; periksa total dan daftar hasil pratinjau terhadap RKAS asli sebelum mengaktifkan impor.</p><a class="rkas-btn" href="<?= h($basePath) ?>/modules/spj_bosp/rencana_bulanan.php">Buka Rencana Bulanan</a></div>
 </div></div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
