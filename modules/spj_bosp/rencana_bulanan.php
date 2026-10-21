@@ -112,7 +112,7 @@ require __DIR__ . '/../../includes/header.php';
 <style>
 .spj-wrap{max-width:1200px;margin:0 auto}.spj-panel{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:18px;margin:0 0 18px}.spj-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.spj-field label{display:block;font-size:13px;margin-bottom:6px;color:var(--text-muted,#64748b)}.spj-field input,.spj-field select{width:100%;min-width:0;padding:10px;border:1px solid var(--border,#d1d5db);border-radius:8px;background:var(--card,#fff);color:inherit}.spj-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}.spj-btn{display:inline-block;border:0;border-radius:8px;padding:10px 14px;background:var(--primary,#2563eb);color:#fff;text-decoration:none;cursor:pointer}.spj-table-wrap{overflow:auto}.spj-table{width:100%;border-collapse:collapse;min-width:720px}.spj-table th,.spj-table td{padding:10px;border-bottom:1px solid var(--border,#e5e7eb);text-align:left;font-size:13px}.spj-table th{background:var(--surface,#f8fafc)}.spj-num{text-align:right!important;white-space:nowrap}.spj-alert{padding:12px;border-radius:9px;margin:10px 0;background:#fef2f2;color:#991b1b}.spj-ok{padding:12px;border-radius:9px;margin:10px 0;background:#ecfdf5;color:#065f46}.spj-muted{font-size:13px;color:var(--text-muted,#64748b)}@media(max-width:760px){.spj-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.spj-panel{padding:12px}}@media(max-width:440px){.spj-grid{grid-template-columns:1fr}}
 </style>
-<main class="main-content"><div class="spj-wrap">
+<div class="main-content"><div class="spj-wrap">
 <div class="page-header"><div><h1>Anggaran &amp; Rencana Bulanan</h1><p class="spj-muted">Tahap awal · input kegiatan dan pagu, lalu susun rencana per bulan.</p></div></div>
 <?php foreach ($errors as $error): ?><div class="spj-alert"><?= h($error) ?></div><?php endforeach; ?>
 <?php if ($ok): ?><div class="spj-ok"><?= h($ok) ?></div><?php endif; ?>
@@ -143,5 +143,5 @@ require __DIR__ . '/../../includes/header.php';
 </tbody></table></div><div class="spj-actions"><button class="spj-btn" type="submit">Simpan rencana bulan ini</button></div></form><?php endif; ?></div>
 <?php endif; ?>
 <div class="spj-panel"><strong>Catatan penting</strong><p class="spj-muted">Ini tahap awal untuk uji coba. Belum mengimpor PDF/Excel, belum menghitung realisasi dari BKU, belum menghubungkan transaksi lama ke kode RKAS, dan belum membuat SI. Jangan gunakan untuk laporan resmi sebelum tahap impor dan rekonsiliasi selesai.</p></div>
-</div></main>
+</div></div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
