@@ -47,16 +47,46 @@ function rkas_pdf_to_csv(string $path, string $source): string
     if (!function_exists('exec')) {
         throw new RuntimeException('Server tidak mengizinkan ekstraksi PDF. Gunakan CSV UTF-8 atau aktifkan pdftotext pada hosting.');
     }
+    // Allow an explicit executable path, then try common Poppler locations on Windows/XAMPP.
+    $candidates = [];
+    $configured = getenv('RKAS_PDFTOTEXT');
+    if (is_string($configured) && trim($configured) !== '') $candidates[] = trim($configured);
+    $candidates[] = 'pdftotext';
+    if (PHP_OS_FAMILY === 'Windows') {
+        $candidates = array_merge($candidates, [
+            'C:\\poppler\\Library\\bin\\pdftotext.exe',
+            'C:\\Program Files\\poppler\\Library\\bin\\pdftotext.exe',
+            'C:\\tools\\poppler\\Library\\bin\\pdftotext.exe',
+            'C:\\Program Files\\Poppler\\bin\\pdftotext.exe',
+            'C:\\xampp\\tools\\poppler\\Library\\bin\\pdftotext.exe',
+        ]);
+    }
+    $binary = null;
+    foreach (array_unique($candidates) as $candidate) {
+        if ($candidate === 'pdftotext') {
+            $probe = [];
+            $probeStatus = 1;
+            @exec((PHP_OS_FAMILY === 'Windows' ? 'where ' : 'command -v ') . 'pdftotext 2>&1', $probe, $probeStatus);
+            if ($probeStatus === 0 && !empty($probe[0])) $binary = trim((string)$probe[0]);
+        } elseif (is_file($candidate)) {
+            $binary = $candidate;
+        }
+        if ($binary !== null) break;
+    }
+    if ($binary === null) {
+        throw new RuntimeException('Pembaca PDF belum terpasang/terdeteksi. Pasang Poppler untuk Windows, lalu atur variabel RKAS_PDFTOTEXT ke lokasi pdftotext.exe. CSV tetap bisa digunakan.');
+    }
     $output = [];
     $status = 1;
+    $command = escapeshellarg($binary) . ' -layout -enc UTF-8 ' . escapeshellarg($path) . ' - 2>&1';
     try {
-        exec('pdftotext -layout -enc UTF-8 ' . escapeshellarg($path) . ' - 2>&1', $output, $status);
+        exec($command, $output, $status);
     } catch (Throwable $e) {
-        throw new RuntimeException('Ekstraksi PDF gagal. Pastikan utilitas pdftotext tersedia di server.');
+        throw new RuntimeException('Ekstraksi PDF gagal dijalankan. Periksa lokasi pdftotext.exe dan izin akses server.');
     }
     $text = implode("\n", $output);
     if ($status !== 0 || trim($text) === '' || stripos($text, 'command not found') !== false || stripos($text, 'not recognized as an internal') !== false) {
-        throw new RuntimeException('PDF belum dapat dibaca oleh server. Pastikan pdftotext tersedia dan PDF berisi teks, bukan hasil scan gambar.');
+        throw new RuntimeException('PDF belum dapat dibaca. Pastikan PDF berisi teks (bukan scan gambar) dan pdftotext.exe bisa dijalankan oleh PHP.');
     }
 
     $lines = preg_split('/\R/u', $text) ?: [];
