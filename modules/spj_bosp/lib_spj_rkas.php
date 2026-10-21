@@ -94,11 +94,15 @@ function rkas_pdf_to_csv(string $path, string $source): string
             }
             continue;
         }
-        // Append wrapped description text, but ignore page footers, headings and subtotal rows.
-        if ($last !== null && !preg_match('/^\\d+\\s+/', $line)
-            && !preg_match('/^(Kertas Kerja|Halaman|Sumber Dana|No\\.|Urut|Kode Rekening|KERTAS KERJA|A\\.|B\\.)/iu', $line)
-            && !preg_match('/^(Belanja|Operasi|Modal)\\s+/iu', $line)
-            && !preg_match('/\\d{1,3}(?:\\.\\d{3})+/', $line)) {
+        // Subtotal rows and page furniture end any wrapped item description.
+        if (preg_match('/^\\d+\\s+/', $line)
+            || preg_match('/^(Kertas Kerja|Halaman|Sumber Dana|No\\.|Urut|Kode Rekening|KERTAS KERJA|A\\.|B\\.|Kec\\.|Komite Sekolah|Kepala Sekolah|Bendahara Sekolah|NIP:)/iu', $line)
+            || preg_match('/^(Belanja|Operasi|Modal)\\s+/iu', $line)) {
+            $last = null;
+            continue;
+        }
+        // Wrapped descriptions usually continue on the next indented line.
+        if ($last !== null && !preg_match('/\\d{1,3}(?:\\.\\d{3})+/', $line)) {
             $rows[$last]['uraian'] = trim($rows[$last]['uraian'] . ' ' . $line);
         }
     }
