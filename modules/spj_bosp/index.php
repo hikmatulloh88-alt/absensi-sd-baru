@@ -11,10 +11,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$errors){
 if(!hash_equals((string)($_SESSION['spj_csrf']??''),(string)($_POST['csrf']??''))) $errors[]='Sesi formulir berakhir. Muat ulang halaman.';
 else {
 $tanggal=trim((string)($_POST['tanggal']??''));$nomor=trim((string)($_POST['nomor_bukti']??''));$kegiatan=trim((string)($_POST['kegiatan']??''));$uraian=trim((string)($_POST['uraian']??''));$penyedia=trim((string)($_POST['penyedia']??''));$brutoRaw=trim((string)($_POST['nilai_bruto']??''));$pajakRaw=trim((string)($_POST['pajak']??''));
-$moneyPattern='/^\\d{1,13}(?:\\.\\d{1,2})?$/';
+$moneyPattern='/^\d{1,13}(?:\\.\d{1,2})?$/';
 $brutoValid=preg_match($moneyPattern,$brutoRaw)===1;$pajakValid=preg_match($moneyPattern,$pajakRaw)===1;
 $bruto=$brutoValid?(float)$brutoRaw:0.0;$pajak=$pajakValid?(float)$pajakRaw:0.0;
-if(!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/',$tanggal)||!checkdate((int)substr($tanggal,5,2),(int)substr($tanggal,8,2),(int)substr($tanggal,0,4))||$kegiatan===''||$uraian===''||!$brutoValid||!$pajakValid||!is_finite($bruto)||!is_finite($pajak)||$pajak>$bruto)$errors[]='Tanggal, kegiatan, uraian, dan nominal wajib valid. Gunakan angka rupiah maksimal 13 digit dan 2 desimal; pajak tidak boleh melebihi bruto.';
+if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$tanggal)||!checkdate((int)substr($tanggal,5,2),(int)substr($tanggal,8,2),(int)substr($tanggal,0,4))||$kegiatan===''||$uraian===''||!$brutoValid||!$pajakValid||!is_finite($bruto)||!is_finite($pajak)||$pajak>$bruto)$errors[]='Tanggal, kegiatan, uraian, dan nominal wajib valid. Gunakan angka rupiah maksimal 13 digit dan 2 desimal; pajak tidak boleh melebihi bruto.';
 $filePath=null;
 if(!$errors&&isset($_FILES['bukti'])&&$_FILES['bukti']['error']!==UPLOAD_ERR_NO_FILE){
 $f=$_FILES['bukti'];$allowed=['application/pdf'=>'pdf','image/jpeg'=>'jpg','image/png'=>'png'];
@@ -28,7 +28,7 @@ if(!$errors)try{$q=$pdo->prepare("INSERT INTO spj_transaksi(sumber_dana,tanggal,
 }}
 if(empty($_SESSION['spj_csrf']))$_SESSION['spj_csrf']=bin2hex(random_bytes(32));
 $filters=['awal'=>trim((string)($_GET['awal']??'')),'akhir'=>trim((string)($_GET['akhir']??'')),'cari'=>trim((string)($_GET['cari']??''))];$rows=[];$totBruto=0;$totPajak=0;
-foreach(['awal'=>'tanggal awal','akhir'=>'tanggal akhir'] as $key=>$label){if($filters[$key]!==''&&(!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/',$filters[$key])||!checkdate((int)substr($filters[$key],5,2),(int)substr($filters[$key],8,2),(int)substr($filters[$key],0,4))))$errors[]='Format '.$label.' tidak valid.';}
+foreach(['awal'=>'tanggal awal','akhir'=>'tanggal akhir'] as $key=>$label){if($filters[$key]!==''&&(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$filters[$key])||!checkdate((int)substr($filters[$key],5,2),(int)substr($filters[$key],8,2),(int)substr($filters[$key],0,4))))$errors[]='Format '.$label.' tidak valid.';}
 if(!$errors&&$filters['awal']!==''&&$filters['akhir']!==''&&$filters['awal']>$filters['akhir'])$errors[]='Tanggal awal tidak boleh melewati tanggal akhir.';
 if(!$errors){$sql="SELECT * FROM spj_transaksi WHERE sumber_dana='BOSP'";$args=[];
 if($filters['awal']!==''&&preg_match('/^\d{4}-\d{2}-\d{2}$/',$filters['awal'])){$sql.=' AND tanggal>=?';$args[]=$filters['awal'];}
