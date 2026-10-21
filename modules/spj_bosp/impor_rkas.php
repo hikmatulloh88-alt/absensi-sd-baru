@@ -140,7 +140,7 @@ require __DIR__ . '/../../includes/header.php';
 <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="preview">
 <div class="rkas-grid"><div class="rkas-field"><label>Tahun anggaran</label><input type="number" name="tahun" min="2000" max="2100" value="<?= h($preview['year']??date('Y')) ?>" required></div>
 <div class="rkas-field"><label>Sumber dana</label><select name="sumber"><option value="BOSP" <?= (($preview['source']??'BOSP')==='BOSP')?'selected':'' ?>>BOSP Reguler</option><option value="BOS_KINERJA" <?= (($preview['source']??'')==='BOS_KINERJA')?'selected':'' ?>>BOS Kinerja</option></select></div>
-<div class="rkas-field"><label>File CSV</label><input type="file" name="file_rkas" accept=".csv,.pdf,text/csv,application/pdf" required></div></div><p style="margin-bottom:0"><button class="rkas-btn" type="submit">Baca &amp; pratinjau</button></p></form></div>
+<div class="rkas-field"><label>File RKAS (PDF/CSV)</label><input type="file" name="file_rkas" accept=".pdf,.csv,application/pdf,text/csv" required></div></div><p style="margin-bottom:0"><button class="rkas-btn" type="submit">Baca &amp; pratinjau</button></p></form></div>
 <?php if(is_array($preview) && !empty($preview['rows'])): ?>
 <div class="rkas-panel"><h2 style="margin-top:0">2. Pratinjau sebelum simpan</h2>
 <p><strong><?= h($preview['filename']) ?></strong> · <?= count($preview['rows']) ?> kegiatan · Total pagu <strong>Rp <?= number_format((float)$preview['total'],0,',','.') ?></strong> · <?= h($preview['year']) ?> · <?= $preview['source']==='BOSP'?'BOSP Reguler':'BOS Kinerja' ?></p>
