@@ -1,0 +1,68 @@
+name: SPJ PHP Syntax Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'modules/spj_bosp/**'
+      - 'modules/spj_bos_kinerja/**'
+      - 'tests/**'
+      - 'database/spj_rencana_bulanan.sql'
+      - 'database/spj_transaksi.sql'
+      - 'includes/header.php'
+      - '.github/workflows/spj-php-lint.yml'
+  push:
+    branches: [feat/spj-bosp-kinerja]
+    paths:
+      - 'tests/**'
+      - 'modules/spj_bosp/**'
+      - 'modules/spj_bos_kinerja/**'
+      - 'database/spj_rencana_bulanan.sql'
+      - 'database/spj_transaksi.sql'
+      - 'includes/header.php'
+      - '.github/workflows/spj-php-lint.yml'
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+          MARIADB_DATABASE: spj_migration_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+      - name: Run BKU and RKAS parsing logic tests
+        run: php tests/spj_bku_logic_test.php
+      - name: Validate isolated SPJ migration on MariaDB
+        env:
+          MYSQL_PWD: test-root-password
+        run: |
+          set -euo pipefail
+          mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_transaksi.sql
+          mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_transaksi.sql
+          mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_rencana_bulanan.sql
+          mysql --host=127.0.0.1 --user=root spj_migration_test < database/spj_rencana_bulanan.sql
+          test "$(mysql --batch --skip-column-names --host=127.0.0.1 --user=root spj_migration_test -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='spj_migration_test' AND table_name IN ('spj_transaksi','spj_rkas_import','spj_rkas_kegiatan','spj_rencana_bulanan','spj_transaksi_rkas')")" = "5"
+          echo "Both SPJ migrations passed twice; all 5 isolated tables exist."
+      - name: Check SPJ PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find modules/spj_bosp modules/spj_bos_kinerja -type f -name '*.php' -print0 |
+            xargs -0 -r -n1 php -l
+          php -l includes/header.php
