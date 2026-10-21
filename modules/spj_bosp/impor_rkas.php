@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
       $year = filter_var($_POST['tahun'] ?? null, FILTER_VALIDATE_INT);
       $source = (string)($_POST['sumber'] ?? '');
       if (!$year || $year < 2000 || $year > 2100 || !in_array($source, ['BOSP','BOS_KINERJA'], true)) $errors[] = 'Tahun dan sumber dana tidak valid.';
-      elseif (!isset($_FILES['file_rkas']) || $_FILES['file_rkas']['error'] !== UPLOAD_ERR_OK) $errors[] = 'Pilih file CSV yang valid.';
+      elseif (!isset($_FILES['file_rkas']) || $_FILES['file_rkas']['error'] !== UPLOAD_ERR_OK) $errors[] = 'Pilih file PDF RKAS berbasis teks atau CSV yang valid.';
       elseif ($_FILES['file_rkas']['size'] < 1 || $_FILES['file_rkas']['size'] > 10*1024*1024) $errors[] = 'File harus berukuran maksimal 10 MB.';
       else {
         $tmp = $_FILES['file_rkas']['tmp_name'];
@@ -135,7 +135,7 @@ require __DIR__ . '/../../includes/header.php';
 <?php foreach($errors as $e): ?><div class="rkas-alert"><?= h($e) ?></div><?php endforeach; ?>
 <?php if($ok): ?><div class="rkas-ok"><?= h($ok) ?></div><?php endif; ?>
 <div class="rkas-panel"><h2 style="margin-top:0">1. Pilih file RKAS</h2>
-<p class="rkas-muted">Buat CSV dengan header <code>kode_kegiatan,kode_rekening,uraian,jenis_belanja,pagu</code>. Kolom wajib: <code>uraian</code> dan <code>pagu</code>. Jenis belanja dapat berisi Operasi, Modal, atau Lainnya. CSV UTF-8 atau PDF RKAS berbasis teks, maksimal 10 MB dan 5.000 kegiatan. PDF scan/gambar belum didukung.</p>
+<p class="rkas-muted">Untuk CSV, gunakan header <code>kode_kegiatan,kode_rekening,uraian,jenis_belanja,pagu</code> (kolom wajib: <code>uraian</code> dan <code>pagu</code>). PDF RKAS berbasis teks dibaca dari rincian bernomor agar subtotal tidak dihitung ganda. PDF hasil scan/gambar belum didukung. Maksimal 10 MB dan 5.000 kegiatan.</p>
 <p><a class="rkas-btn" style="background:#64748b" href="<?= h($basePath) ?>/templates/template_import_rkas.csv" download>Unduh template CSV kosong</a></p>
 <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="preview">
 <div class="rkas-grid"><div class="rkas-field"><label>Tahun anggaran</label><input type="number" name="tahun" min="2000" max="2100" value="<?= h($preview['year']??date('Y')) ?>" required></div>
@@ -150,6 +150,6 @@ require __DIR__ . '/../../includes/header.php';
 <form method="post" style="margin-top:14px"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="commit"><label style="display:block;margin-bottom:12px"><input type="checkbox" name="confirm" value="yes" required> Saya sudah memeriksa tahun, sumber dana, daftar kegiatan, dan total pagu.</label><button class="rkas-btn" type="submit">Konfirmasi &amp; simpan RKAS</button></form>
 <form method="post" style="margin-top:8px"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="clear_preview"><button class="rkas-btn" style="background:#64748b" type="submit">Batalkan pratinjau</button></form></div>
 <?php endif; ?>
-<div class="rkas-panel"><h2 style="margin-top:0">Batas tahap ini</h2><p class="rkas-muted">Halaman ini menerima CSV, bukan PDF atau XLSX secara langsung. Ekspor Excel sebagai CSV UTF-8 terlebih dahulu. Belum ada OCR PDF atau rekonsiliasi BKU; angka yang diimpor harus diperiksa terhadap dokumen RKAS asli sebelum menjadi acuan resmi.</p><a class="rkas-btn" href="<?= h($basePath) ?>/modules/spj_bosp/rencana_bulanan.php">Buka Rencana Bulanan</a></div>
+<div class="rkas-panel"><h2 style="margin-top:0">Batas tahap ini</h2><p class="rkas-muted">PDF dibaca menggunakan utilitas <code>pdftotext</code> yang harus tersedia di server; PDF hasil scan/gambar memerlukan OCR dan belum didukung. CSV lama tetap tersedia. Belum ada rekonsiliasi BKU otomatis; periksa total dan daftar hasil pratinjau terhadap RKAS asli sebelum mengaktifkan impor.</p><a class="rkas-btn" href="<?= h($basePath) ?>/modules/spj_bosp/rencana_bulanan.php">Buka Rencana Bulanan</a></div>
 </div></div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
