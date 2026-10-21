@@ -65,6 +65,14 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
       else {
         try {
           $pdo->beginTransaction();
+          // Jangan mengesahkan rencana saat ada transaksi yang belum dapat dibebankan ke kegiatan RKAS.
+          // Tanpa pemetaan, validasi sisa pagu akan menghitung realisasi terlalu rendah.
+          $unmapped = $pdo->prepare("SELECT COUNT(*) FROM spj_transaksi t LEFT JOIN spj_transaksi_rkas m ON m.transaksi_id=t.id WHERE t.sumber_dana=? AND YEAR(t.tanggal)=? AND m.transaksi_id IS NULL");
+          $unmapped->execute([$source,$year]);
+          $unmappedCount = (int)$unmapped->fetchColumn();
+          if ($unmappedCount > 0) {
+            throw new RuntimeException('Rencana belum disimpan: masih ada '.$unmappedCount.' transaksi SPJ yang belum dipetakan ke kegiatan RKAS. Selesaikan pemetaan terlebih dahulu agar validasi sisa pagu tidak terlalu besar.');
+          }
           $find = $pdo->prepare("SELECT k.id,k.pagu,i.tahun_anggaran,i.sumber_dana FROM spj_rkas_kegiatan k JOIN spj_rkas_import i ON i.id=k.import_id WHERE k.id=? AND i.tahun_anggaran=? AND i.sumber_dana=? AND i.status='aktif' FOR UPDATE");
           $planned = $pdo->prepare("SELECT COALESCE(SUM(nominal_rencana),0) FROM spj_rencana_bulanan WHERE kegiatan_id=? AND status='aktif' AND NOT (tahun_anggaran=? AND bulan=? AND sumber_dana=?)");
           $actual = $pdo->prepare("SELECT COALESCE(SUM(t.nilai_bruto),0) FROM spj_transaksi_rkas m JOIN spj_transaksi t ON t.id=m.transaksi_id WHERE m.kegiatan_id=? AND t.sumber_dana=? AND YEAR(t.tanggal)=?");
