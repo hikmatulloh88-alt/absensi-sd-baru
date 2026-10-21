@@ -81,13 +81,15 @@ function navActive(string $needle): string { global $uri; return str_contains($u
     </div>
 
     <a class="nav-link<?= navActive('/modules/laporan/') ?>" href="<?= h($basePath) ?>/modules/laporan/index.php"><span>▤</span>Laporan</a>
+    <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+
     <div class="nav-group<?= (str_contains($uri, '/modules/spj_bosp/') || str_contains($uri, '/modules/spj_bos_kinerja/')) ? ' active' : '' ?>">
       <button class="nav-group-toggle<?= (str_contains($uri, '/modules/spj_bosp/') || str_contains($uri, '/modules/spj_bos_kinerja/')) ? ' active' : '' ?>" type="button" aria-expanded="<?= (str_contains($uri, '/modules/spj_bosp/') || str_contains($uri, '/modules/spj_bos_kinerja/')) ? 'true' : 'false' ?>" aria-controls="nav-spj">
         <span class="nav-icon">▤</span><span class="nav-label">SPJ</span><span class="nav-chevron">⌄</span>
       </button>
       <div class="nav-submenu<?= (str_contains($uri, '/modules/spj_bosp/') || str_contains($uri, '/modules/spj_bos_kinerja/')) ? ' expanded' : '' ?>" id="nav-spj">
-        <a class="nav-sublink<?= navActive('/modules/spj_bosp/') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/index.php"><span>📁</span>SPJ BOSP</a>
-        <a class="nav-sublink<?= navActive('/modules/spj_bos_kinerja/') ?>" href="<?= h($basePath) ?>/modules/spj_bos_kinerja/index.php"><span>📂</span>SPJ BOS Kinerja</a>
+        <a class="nav-sublink<?= (str_contains($uri, '/modules/spj_bosp/index.php') || str_ends_with($uri, '/modules/spj_bosp/') || str_ends_with($uri, '/modules/spj_bosp')) ? ' active' : '' ?>" href="<?= h($basePath) ?>/modules/spj_bosp/index.php"><span>📁</span>SPJ BOSP</a>
+        <a class="nav-sublink<?= (str_contains($uri, '/modules/spj_bos_kinerja/index.php') || str_ends_with($uri, '/modules/spj_bos_kinerja/') || str_ends_with($uri, '/modules/spj_bos_kinerja')) ? ' active' : '' ?>" href="<?= h($basePath) ?>/modules/spj_bos_kinerja/index.php"><span>📂</span>SPJ BOS Kinerja</a>
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/rencana_bulanan.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/rencana_bulanan.php"><span>📅</span>Anggaran &amp; Rencana Bulanan</a>
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/impor_rkas.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/impor_rkas.php"><span>📥</span>Impor RKAS</a>
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/impor_bku.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/impor_bku.php"><span>📄</span>Impor BKU</a>
@@ -96,7 +98,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
         <a class="nav-sublink<?= navActive('/modules/spj_bosp/standing_instruction.php') ?>" href="<?= h($basePath) ?>/modules/spj_bosp/standing_instruction.php"><span>📝</span>Standing Instruction (SI)</a>
       </div>
     </div>
-    <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+
     <a class="nav-link<?= navActive('/modules/pengguna/') ?>" href="<?= h($basePath) ?>/modules/pengguna/index.php"><span>⚙</span>Kelola Akun</a>
     <?php endif; ?>
     <?php endif; ?>

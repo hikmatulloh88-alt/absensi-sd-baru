@@ -1,4 +1,4 @@
-﻿config/database.php
+config/database.php
 config/*.local.php
 .env
 .env.*
@@ -6,3 +6,7 @@ config/*.local.php
 *.log
 .DS_Store
 Thumbs.db
+powershell.cmd
+powershell.bat
+assets/images/siswa/*
+!assets/images/siswa/default-avatar.png

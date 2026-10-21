@@ -111,7 +111,7 @@ require __DIR__ . '/../../includes/header.php';
 <style>
 .rkas-wrap{max-width:1180px;margin:auto}.rkas-panel{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:18px;margin:0 0 16px}.rkas-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.rkas-field label{display:block;font-size:13px;margin-bottom:6px;color:var(--text-muted,#64748b)}.rkas-field input,.rkas-field select{width:100%;padding:10px;border:1px solid var(--border,#d1d5db);border-radius:8px;background:var(--card,#fff);color:inherit}.rkas-btn{display:inline-block;border:0;border-radius:8px;padding:10px 14px;background:var(--primary,#2563eb);color:white;cursor:pointer;text-decoration:none}.rkas-table-wrap{overflow:auto}.rkas-table{width:100%;border-collapse:collapse;min-width:760px}.rkas-table th,.rkas-table td{padding:9px;border-bottom:1px solid var(--border,#e5e7eb);font-size:13px;text-align:left}.rkas-table th{background:var(--surface,#f8fafc)}.rkas-alert,.rkas-ok{padding:12px;border-radius:9px;margin:10px 0}.rkas-alert{background:#fef2f2;color:#991b1b}.rkas-ok{background:#ecfdf5;color:#065f46}.rkas-muted{font-size:13px;color:var(--text-muted,#64748b)}@media(max-width:700px){.rkas-grid{grid-template-columns:1fr}.rkas-panel{padding:12px}}
 </style>
-<main class="main-content"><div class="rkas-wrap">
+<div class="main-content"><div class="rkas-wrap">
 <div class="page-header"><div><h1>Impor Anggaran Tahunan</h1><p class="rkas-muted">CSV hasil ekspor/salinan Excel · pratinjau sebelum penyimpanan · tidak menimpa versi yang dipakai rencana aktif.</p></div></div>
 <?php foreach($errors as $e): ?><div class="rkas-alert"><?= h($e) ?></div><?php endforeach; ?>
 <?php if($ok): ?><div class="rkas-ok"><?= h($ok) ?></div><?php endif; ?>
@@ -132,5 +132,5 @@ require __DIR__ . '/../../includes/header.php';
 <form method="post" style="margin-top:8px"><input type="hidden" name="csrf" value="<?= h($_SESSION['spj_csrf']) ?>"><input type="hidden" name="action" value="clear_preview"><button class="rkas-btn" style="background:#64748b" type="submit">Batalkan pratinjau</button></form></div>
 <?php endif; ?>
 <div class="rkas-panel"><h2 style="margin-top:0">Batas tahap ini</h2><p class="rkas-muted">Halaman ini menerima CSV, bukan PDF atau XLSX secara langsung. Ekspor Excel sebagai CSV UTF-8 terlebih dahulu. Belum ada OCR PDF atau rekonsiliasi BKU; angka yang diimpor harus diperiksa terhadap dokumen RKAS asli sebelum menjadi acuan resmi.</p><a class="rkas-btn" href="<?= h($basePath) ?>/modules/spj_bosp/rencana_bulanan.php">Buka Rencana Bulanan</a></div>
-</div></main>
+</div></div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
