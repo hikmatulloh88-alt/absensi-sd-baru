@@ -290,6 +290,20 @@
     });
   }
 
+  function selectionIsEmpty() {
+    if (!selectionCanvas || !selectionCtx) return true;
+    const probe = document.createElement('canvas');
+    probe.width = 32;
+    probe.height = 32;
+    const probeCtx = probe.getContext('2d');
+    probeCtx.drawImage(selectionCanvas, 0, 0, 32, 32);
+    const pixels = probeCtx.getImageData(0, 0, 32, 32).data;
+    for (let i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] > 0) return false;
+    }
+    return true;
+  }
+
   function renderResults(images) {
     resultsGrid.replaceChildren();
     images.forEach((item, index) => {
@@ -356,7 +370,7 @@
       body.append('quality', document.getElementById('meQuality').value);
       body.append('n', document.getElementById('meVariants').value);
 
-      if (strokes.length > 0) {
+      if (strokes.length > 0 && !selectionIsEmpty()) {
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = canvas.width;
         maskCanvas.height = canvas.height;
