@@ -81,6 +81,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
     </div>
 
     <a class="nav-link<?= navActive('/modules/laporan/') ?>" href="<?= h($basePath) ?>/modules/laporan/index.php"><span>▤</span>Laporan</a>
+    <a class="nav-link<?= navActive('/modules/magic_edit/') ?>" href="<?= h($basePath) ?>/modules/magic_edit/index.php"><span>✦</span>Magic Edit AI</a>
     <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
 
     <div class="nav-group<?= (str_contains($uri, '/modules/spj_bosp/') || str_contains($uri, '/modules/spj_bos_kinerja/')) ? ' active' : '' ?>">
