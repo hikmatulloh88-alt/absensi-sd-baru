@@ -465,7 +465,6 @@
     const source = workCtx.getImageData(0, 0, width, height);
     const pixels = source.data;
     const limit = Math.max(8, Number(tolerance.value) * 2);
-    const limitSquared = limit * limit;
     const visited = new Uint8Array(total);
     const removed = new Uint8Array(total);
     const queue = new Uint32Array(total);
@@ -514,24 +513,23 @@
 
         // Add a small anti-aliased fringe around the removed region.
         const feather = 38;
+        const featherNeighbor = next => {
+          if (removed[next]) return;
+          const p = next * 4;
+          const distance = colorDistance(pixels[p], pixels[p + 1], pixels[p + 2], target);
+          if (distance > limit && distance < limit + feather) {
+            const alpha = Math.round(255 * ((distance - limit) / feather));
+            pixels[p + 3] = Math.min(pixels[p + 3], alpha);
+          }
+        };
         for (let index = 0; index < total; index++) {
           if (!removed[index]) continue;
           const x = index % width;
           const y = Math.floor(index / width);
-          const edgeNeighbors = [];
-          if (x > 0) edgeNeighbors.push(index - 1);
-          if (x < width - 1) edgeNeighbors.push(index + 1);
-          if (y > 0) edgeNeighbors.push(index - width);
-          if (y < height - 1) edgeNeighbors.push(index + width);
-          for (const next of edgeNeighbors) {
-            if (removed[next]) continue;
-            const p = next * 4;
-            const distance = colorDistance(pixels[p], pixels[p + 1], pixels[p + 2], target);
-            if (distance > limit && distance < limit + feather) {
-              const alpha = Math.round(255 * ((distance - limit) / feather));
-              pixels[p + 3] = Math.min(pixels[p + 3], alpha);
-            }
-          }
+          if (x > 0) featherNeighbor(index - 1);
+          if (x < width - 1) featherNeighbor(index + 1);
+          if (y > 0) featherNeighbor(index - width);
+          if (y < height - 1) featherNeighbor(index + width);
         }
 
         workCtx.putImageData(source, 0, 0);
