@@ -17,6 +17,7 @@ on:
       - 'assets/js/magic-edit.js'
       - 'assets/css/magic-edit.css'
       - 'includes/header.php'
+      - 'docs/MAGIC_EDIT_AI.md'
       - '.github/workflows/magic-edit-php-lint.yml'
 
 jobs:
