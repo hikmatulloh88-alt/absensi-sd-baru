@@ -48,6 +48,7 @@
   let overlayCanvas = null;
   let overlayCtx = null;
   let originalUrl = null;
+  let originalImageData = null;
   let currentResultUrl = null;
   let activeStroke = null;
   let strokes = [];
@@ -116,7 +117,7 @@
 
   function updateButtons() {
     const hasImage = !!workCanvas;
-    const hasSelection = hasImage && selectionHasPixels();
+    const hasSelection = hasImage && (strokes.length > 0 || !!activeStroke);
     undoBtn.disabled = isBusy || historyIndex <= 0;
     redoBtn.disabled = isBusy || historyIndex >= history.length - 1;
     clearSelectionBtn.disabled = isBusy || !hasSelection;
@@ -261,6 +262,7 @@
       const originalBlob = await new Promise(resolve => workCanvas.toBlob(resolve, 'image/png'));
       if (!originalBlob) throw new Error('Foto tidak dapat disiapkan untuk pratinjau.');
       originalUrl = URL.createObjectURL(originalBlob);
+      originalImageData = workCtx.getImageData(0, 0, width, height);
 
       emptyState.hidden = true;
       canvas.hidden = false;
@@ -289,82 +291,6 @@
       y: Math.max(0, Math.min(canvas.height - 1, (event.clientY - rect.top) * canvas.height / rect.height))
     };
   }
-
-  function sampleBackground(point) {
-    const x = Math.round(point.x);
-    const y = Math.round(point.y);
-    const pixel = workCtx.getImageData(x, y, 1, 1).data;
-    pickedBackground = { r: pixel[0], g: pixel[1], b: pixel[2] };
-    const hex = '#' + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, '0')).join('');
-    bgSwatch.style.background = hex;
-    bgColorLabel.textContent = hex.toUpperCase();
-    bgBtn.disabled = false;
-    showAlert('Warna background ' + hex.toUpperCase() + ' dipilih. Klik “Hapus background terpilih” untuk menghapus area yang tersambung dengan warna ini.');
-  }
-
-  function finishStroke() {
-    if (!activeStroke) return;
-    strokes.push(activeStroke);
-    activeStroke = null;
-    saveHistory();
-    redrawSelection();
-  }
-
-  canvas.addEventListener('pointerdown', event => {
-    if (!workCanvas || isBusy) return;
-    event.preventDefault();
-    const point = pointerPosition(event);
-    if (activeTool === 'pick') {
-      sampleBackground(point);
-      return;
-    }
-    canvas.setPointerCapture(event.pointerId);
-    const rect = canvas.getBoundingClientRect();
-    const scale = canvas.width / Math.max(1, rect.width);
-    activeStroke = {
-      tool: activeTool,
-      width: Math.max(2, Number(brushSize.value) * scale),
-      points: [point]
-    };
-    redrawSelection();
-  });
-
-  canvas.addEventListener('pointermove', event => {
-    if (!activeStroke || isBusy) return;
-    activeStroke.points.push(pointerPosition(event));
-    redrawSelection();
-  });
-  canvas.addEventListener('pointerup', finishStroke);
-  canvas.addEventListener('pointercancel', finishStroke);
-
-  brushBtn.addEventListener('click', () => setTool('brush'));
-  eraserBtn.addEventListener('click', () => setTool('eraser'));
-  pickBgBtn.addEventListener('click', () => setTool('pick'));
-  brushSize.addEventListener('input', () => { brushValue.textContent = brushSize.value + ' px'; });
-  tolerance.addEventListener('input', () => { toleranceValue.textContent = tolerance.value; });
-
-  $('meUndoBtn').addEventListener('click', () => restoreHistory(historyIndex - 1));
-  $('meRedoBtn').addEventListener('click', () => restoreHistory(historyIndex + 1));
-  clearSelectionBtn.addEventListener('click', () => {
-    if (selectionHasPixels()) clearSelection(true);
-  });
-
-  stage.addEventListener('dragover', event => {
-    event.preventDefault();
-    stage.classList.add('is-dragging');
-  });
-  stage.addEventListener('dragleave', () => stage.classList.remove('is-dragging'));
-  stage.addEventListener('drop', event => {
-    event.preventDefault();
-    stage.classList.remove('is-dragging');
-    const file = event.dataTransfer.files && event.dataTransfer.files[0];
-    if (file) prepareImage(file);
-  });
-  fileInput.addEventListener('change', event => {
-    const file = event.target.files && event.target.files[0];
-    if (file) prepareImage(file);
-    fileInput.value = '';
-  });
 
   function eraseSelectedArea() {
     if (!workCanvas || !selectionCtx || isBusy) return;
@@ -539,11 +465,7 @@
     setBusy(true, 'Menghapus warna background yang tersambung...');
     window.setTimeout(() => {
       try {
-        const sx = Math.floor(width / 2);
-        const sy = Math.floor(height / 2);
-        const seed = pickedBackground;
-        const seedIndex = sy * width + sx;
-        // The eyedropper location is stored separately to ensure the correct clicked point is used.
+        // The eyedropper stores the exact pixel selected by the user.
         const startIndex = pickedBackground.index;
         if (!Number.isInteger(startIndex) || startIndex < 0 || startIndex >= total) {
           showAlert('Pilih warna background sekali lagi menggunakan alat Pipet BG.');
@@ -728,7 +650,17 @@
   });
 
   restoreBtn.addEventListener('click', () => {
-    if (historyIndex > 0) restoreHistory(0);
+    if (!workCanvas || !originalImageData || isBusy) return;
+    workCtx.putImageData(originalImageData, 0, 0);
+    strokes = [];
+    selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+    pickedBackground = null;
+    bgSwatch.style.background = 'transparent';
+    bgColorLabel.textContent = 'Belum memilih warna';
+    saveHistory();
+    renderCanvas();
+    updateComparison();
+    showAlert('Foto dikembalikan ke kondisi asli.');
   });
 
   function sampleBackground(point) {
