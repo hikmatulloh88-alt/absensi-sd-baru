@@ -273,7 +273,6 @@
       renderCanvas();
       resultsCard.hidden = true;
       resultsGrid.replaceChildren();
-      await updateComparison();
     } catch (error) {
       showAlert(error.message || 'Foto gagal dibuka. Coba file lain.');
       workCanvas = null;
@@ -657,6 +656,10 @@
     strokes = [];
     selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
     pickedBackground = null;
+    brightness.value = 0;
+    contrast.value = 0;
+    saturation.value = 100;
+    updateAdjustmentLabels();
     bgSwatch.style.background = 'transparent';
     bgColorLabel.textContent = 'Belum memilih warna';
     saveHistory();
