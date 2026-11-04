@@ -24,3 +24,5 @@
 .me-stage canvas[hidden]{display:none}
 .me-stage.is-dragging{outline:2px dashed #8b6de2;outline-offset:-10px;background-color:#efebff}
 @media(max-width:650px){.me-action-block{padding:13px 0}.me-local-badge{margin-bottom:13px}}
+
+.me-alert.me-alert-success{background:#effaf3;border-color:#ccebd7;color:#236b46}
