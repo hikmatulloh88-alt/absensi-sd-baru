@@ -1,0 +1,46 @@
+name: Magic Edit AI Syntax Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'modules/magic_edit/**'
+      - 'assets/js/magic-edit.js'
+      - 'assets/css/magic-edit.css'
+      - 'includes/header.php'
+      - 'config/magic_edit.example.php'
+      - '.github/workflows/magic-edit-php-lint.yml'
+  push:
+    branches: [feat/magic-edit-ai]
+    paths:
+      - 'modules/magic_edit/**'
+      - 'assets/js/magic-edit.js'
+      - 'assets/css/magic-edit.css'
+      - 'includes/header.php'
+      - 'config/magic_edit.example.php'
+      - '.github/workflows/magic-edit-php-lint.yml'
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check PHP syntax
+        run: |
+          set -euo pipefail
+          php -l modules/magic_edit/index.php
+          php -l modules/magic_edit/edit.php
+          php -l config/magic_edit.example.php
+          php -l includes/header.php
+      - name: Check JavaScript syntax
+        run: node --check assets/js/magic-edit.js
