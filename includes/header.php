@@ -13,6 +13,7 @@ function navActive(string $needle): string { global $uri; return str_contains($u
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($pageTitle) ?> · Absensi SDN Ciburayut 01</title>
 <link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/app.css?v=20261019rapor1">
+<?php if (!empty($extraStylesheet)): ?><link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/<?= h($extraStylesheet) ?>"><?php endif; ?>
 </head>
 <body>
 <div class="app-shell">
