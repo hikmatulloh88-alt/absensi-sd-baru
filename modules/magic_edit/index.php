@@ -11,10 +11,10 @@ if (empty($_SESSION['magic_edit_csrf'])) {
     $_SESSION['magic_edit_csrf'] = bin2hex(random_bytes(32));
 }
 $magicEditCsrf = $_SESSION['magic_edit_csrf'];
+$extraStylesheet = 'magic-edit.css?v=1';
 
 require __DIR__ . '/../../includes/header.php';
 ?>
-<link rel="stylesheet" href="<?= h($basePath) ?>/assets/css/magic-edit.css?v=1">
 <section class="me-page">
   <div class="me-hero">
     <div class="me-hero-copy">
