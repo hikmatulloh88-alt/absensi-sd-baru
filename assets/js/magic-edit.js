@@ -57,6 +57,7 @@
   let activeTool = 'brush';
   let pickedBackground = null;
   let isBusy = false;
+  let isOriginal = true;
 
   function showAlert(message, type = 'error') {
     alertBox.textContent = message;
@@ -93,7 +94,8 @@
   function snapshot() {
     return {
       pixels: workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height),
-      strokes: cloneStrokes(strokes)
+      strokes: cloneStrokes(strokes),
+      isOriginal
     };
   }
 
@@ -111,6 +113,7 @@
     const state = history[historyIndex];
     workCtx.putImageData(state.pixels, 0, 0);
     strokes = cloneStrokes(state.strokes);
+    isOriginal = !!state.isOriginal;
     redrawSelection();
     renderCanvas();
     updateButtons();
@@ -126,7 +129,7 @@
     eraseBtn.disabled = isBusy || !hasSelection;
     bgBtn.disabled = isBusy || !hasImage || !pickedBackground;
     downloadBtn.disabled = isBusy || !hasImage;
-    restoreBtn.disabled = isBusy || !hasImage || history.length <= 1;
+    restoreBtn.disabled = isBusy || !hasImage || isOriginal;
     applyAdjustBtn.disabled = isBusy || !hasImage;
   }
 
@@ -204,7 +207,10 @@
     strokes = [];
     activeStroke = null;
     selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
-    if (save) saveHistory();
+    if (save) {
+      isOriginal = false;
+      saveHistory();
+    }
     renderCanvas();
   }
 
@@ -254,6 +260,7 @@
       strokes = [];
       history = [];
       historyIndex = -1;
+      isOriginal = true;
       activeStroke = null;
       pickedBackground = null;
       bgSwatch.style.background = 'transparent';
@@ -427,6 +434,7 @@
         workCtx.putImageData(output, 0, 0);
         strokes = [];
         selectionCtx.clearRect(0, 0, width, height);
+        isOriginal = false;
         saveHistory();
         renderCanvas();
         updateComparison();
@@ -527,6 +535,7 @@
         }
 
         workCtx.putImageData(source, 0, 0);
+        isOriginal = false;
         saveHistory();
         renderCanvas();
         updateComparison();
@@ -578,6 +587,7 @@
         contrast.value = 0;
         saturation.value = 100;
         updateAdjustmentLabels();
+        isOriginal = false;
         saveHistory();
         renderCanvas();
         updateComparison();
@@ -655,6 +665,7 @@
     workCtx.putImageData(originalImageData, 0, 0);
     strokes = [];
     selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+    isOriginal = true;
     pickedBackground = null;
     brightness.value = 0;
     contrast.value = 0;
@@ -684,6 +695,7 @@
     if (!activeStroke) return;
     strokes.push(activeStroke);
     activeStroke = null;
+    isOriginal = false;
     saveHistory();
     redrawSelection();
   }
