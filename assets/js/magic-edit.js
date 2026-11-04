@@ -58,14 +58,16 @@
   let pickedBackground = null;
   let isBusy = false;
 
-  function showAlert(message) {
+  function showAlert(message, type = 'error') {
     alertBox.textContent = message;
+    alertBox.classList.toggle('me-alert-success', type === 'success');
     alertBox.hidden = false;
   }
 
   function clearAlert() {
     alertBox.hidden = true;
     alertBox.textContent = '';
+    alertBox.classList.remove('me-alert-success');
   }
 
   function setBusy(busy, message) {
@@ -124,7 +126,7 @@
     eraseBtn.disabled = isBusy || !hasSelection;
     bgBtn.disabled = isBusy || !hasImage || !pickedBackground;
     downloadBtn.disabled = isBusy || !hasImage;
-    restoreBtn.disabled = isBusy || !hasImage || historyIndex <= 0;
+    restoreBtn.disabled = isBusy || !hasImage || history.length <= 1;
     applyAdjustBtn.disabled = isBusy || !hasImage;
   }
 
@@ -429,7 +431,7 @@
         saveHistory();
         renderCanvas();
         updateComparison();
-        showAlert('Area terpilih sudah diisi secara lokal. Hasil terbaik biasanya untuk noda atau objek kecil dengan latar yang relatif rata; area besar dapat terlihat buram.');
+        showAlert('Area terpilih sudah diisi secara lokal. Hasil terbaik biasanya untuk noda atau objek kecil dengan latar yang relatif rata; area besar dapat terlihat buram.', 'success');
       } catch (error) {
         showAlert('Penghapusan objek gagal: ' + (error.message || 'memori browser tidak cukup.'));
       } finally {
@@ -529,7 +531,7 @@
         saveHistory();
         renderCanvas();
         updateComparison();
-        showAlert('Background yang terhubung dengan warna pilihan berhasil dibuat transparan. Periksa tepi foto; hasil bergantung pada keseragaman warna background.');
+        showAlert('Background yang terhubung dengan warna pilihan berhasil dibuat transparan. Periksa tepi foto; hasil bergantung pada keseragaman warna background.', 'success');
       } catch (error) {
         showAlert('Penghapusan background gagal: ' + (error.message || 'memori browser tidak cukup.'));
       } finally {
@@ -580,7 +582,7 @@
         saveHistory();
         renderCanvas();
         updateComparison();
-        showAlert('Penyesuaian foto berhasil diterapkan secara lokal.');
+        showAlert('Penyesuaian foto berhasil diterapkan secara lokal.', 'success');
       } catch (error) {
         showAlert('Penyesuaian foto gagal: ' + (error.message || 'memori browser tidak cukup.'));
       } finally {
@@ -660,7 +662,7 @@
     saveHistory();
     renderCanvas();
     updateComparison();
-    showAlert('Foto dikembalikan ke kondisi asli.');
+    showAlert('Foto dikembalikan ke kondisi asli.', 'success');
   });
 
   function sampleBackground(point) {
