@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 header('Content-Type: application/json; charset=UTF-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-function magic_edit_json(int $status, array $payload): never {
+function magic_edit_json(int $status, array $payload): void {
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
@@ -80,6 +80,12 @@ $postFields = [
 $imageName = 'magic-edit-input.' . $allowedMimes[$imageMime];
 $postFields['image[]'] = new CURLFile($imageFile['tmp_name'], $imageMime, $imageName);
 
+if (isset($_FILES['mask'])) {
+    $maskError = (int)($_FILES['mask']['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($maskError !== UPLOAD_ERR_OK && $maskError !== UPLOAD_ERR_NO_FILE) {
+        magic_edit_json(422, ['success' => false, 'message' => 'Mask seleksi gagal diunggah. Kurangi ukuran foto dan coba lagi.']);
+    }
+}
 if (isset($_FILES['mask']) && (int)($_FILES['mask']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
     $maskFile = $_FILES['mask'];
     if ((int)$maskFile['size'] > 4 * 1024 * 1024) {
