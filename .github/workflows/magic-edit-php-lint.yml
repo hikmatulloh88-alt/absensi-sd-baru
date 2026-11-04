@@ -1,4 +1,4 @@
-name: Magic Edit AI Syntax Check
+name: Magic Edit Local Syntax Check
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
       - 'assets/js/magic-edit.js'
       - 'assets/css/magic-edit.css'
       - 'includes/header.php'
-      - 'config/magic_edit.example.php'
+      - 'docs/MAGIC_EDIT_AI.md'
       - '.github/workflows/magic-edit-php-lint.yml'
   push:
     branches: [feat/magic-edit-ai]
@@ -17,7 +17,6 @@ on:
       - 'assets/js/magic-edit.js'
       - 'assets/css/magic-edit.css'
       - 'includes/header.php'
-      - 'config/magic_edit.example.php'
       - '.github/workflows/magic-edit-php-lint.yml'
 
 jobs:
@@ -39,8 +38,6 @@ jobs:
         run: |
           set -euo pipefail
           php -l modules/magic_edit/index.php
-          php -l modules/magic_edit/edit.php
-          php -l config/magic_edit.example.php
           php -l includes/header.php
       - name: Check JavaScript syntax
         run: node --check assets/js/magic-edit.js
